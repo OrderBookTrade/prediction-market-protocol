@@ -181,14 +181,13 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
      * @param timestamp timestamp to identify the existing request.
      * @param ancillaryData ancillary data of the price being requested.
      */
-    function setEventBased(
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) external override nonReentrant {
+    function setEventBased(bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        external
+        override
+        nonReentrant
+    {
         require(
-            _getState(msg.sender, identifier, timestamp, ancillaryData) == State.Requested,
-            "setEventBased: Requested"
+            _getState(msg.sender, identifier, timestamp, ancillaryData) == State.Requested, "setEventBased: Requested"
         );
         Request storage request = _getRequest(msg.sender, identifier, timestamp, ancillaryData);
         request.requestSettings.eventBased = true;
@@ -199,11 +198,11 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
      * @dev Not implemented. Only maintaining the interface for compatibility.
      */
     function setCallbacks(
-        bytes32 /* identifier */,
-        uint256 /* timestamp */,
-        bytes memory /* ancillaryData */,
-        bool /* callbackOnPriceProposed */,
-        bool /* callbackOnPriceDisputed */,
+        bytes32, /* identifier */
+        uint256, /* timestamp */
+        bytes memory, /* ancillaryData */
+        bool, /* callbackOnPriceProposed */
+        bool, /* callbackOnPriceDisputed */
         bool /* callbackOnPriceSettled */
     ) external override nonReentrant {
         revert UmaCompatibleOptimisticOracle__NotImplemented();
@@ -236,8 +235,7 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
 
         require(proposer != address(0), "proposer address must be non 0");
         require(
-            _getState(requester, identifier, timestamp, ancillaryData) == State.Requested,
-            "proposePriceFor: Requested"
+            _getState(requester, identifier, timestamp, ancillaryData) == State.Requested, "proposePriceFor: Requested"
         );
         Request storage request = _getRequest(requester, identifier, timestamp, ancillaryData);
         if (request.requestSettings.eventBased) {
@@ -290,13 +288,12 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
     /**
      * @dev Not implemented. Only maintaining the interface for compatibility.
      */
-    function disputePriceFor(
-        address,
-        address,
-        bytes32,
-        uint256,
-        bytes memory
-    ) public override nonReentrant returns (uint256) {
+    function disputePriceFor(address, address, bytes32, uint256, bytes memory)
+        public
+        override
+        nonReentrant
+        returns (uint256)
+    {
         revert UmaCompatibleOptimisticOracle__NotImplemented();
     }
 
@@ -316,11 +313,12 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
      * @param ancillaryData ancillary data of the price being requested.
      * @return resolved price.
      */
-    function settleAndGetPrice(
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) external override nonReentrant returns (int256) {
+    function settleAndGetPrice(bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        external
+        override
+        nonReentrant
+        returns (int256)
+    {
         if (_getState(msg.sender, identifier, timestamp, ancillaryData) != State.Settled) {
             _settle(msg.sender, identifier, timestamp, ancillaryData);
         }
@@ -337,12 +335,12 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
      * @return payout the amount that the "winner" (proposer or disputer) receives on settlement. This amount includes
      * the returned bonds as well as additional rewards.
      */
-    function settle(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) external override nonReentrant returns (uint256 payout) {
+    function settle(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        external
+        override
+        nonReentrant
+        returns (uint256 payout)
+    {
         return _settle(requester, identifier, timestamp, ancillaryData);
     }
 
@@ -354,12 +352,13 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
      * @param ancillaryData ancillary data of the price being requested.
      * @return the Request data structure.
      */
-    function getRequest(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) public view override nonReentrantView returns (Request memory) {
+    function getRequest(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        public
+        view
+        override
+        nonReentrantView
+        returns (Request memory)
+    {
         return _getRequest(requester, identifier, timestamp, ancillaryData);
     }
 
@@ -371,12 +370,13 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
      * @param ancillaryData ancillary data of the price being requested.
      * @return the State.
      */
-    function getState(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) public view override nonReentrantView returns (State) {
+    function getState(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        public
+        view
+        override
+        nonReentrantView
+        returns (State)
+    {
         return _getState(requester, identifier, timestamp, ancillaryData);
     }
 
@@ -388,12 +388,13 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
      * @param ancillaryData ancillary data of the price being requested.
      * @return boolean indicating true if price exists and false if not.
      */
-    function hasPrice(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) public view override nonReentrantView returns (bool) {
+    function hasPrice(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        public
+        view
+        override
+        nonReentrantView
+        returns (bool)
+    {
         State state = _getState(requester, identifier, timestamp, ancillaryData);
         return state == State.Settled || state == State.Resolved || state == State.Expired;
     }
@@ -405,21 +406,18 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
         revert UmaCompatibleOptimisticOracle__NotImplemented();
     }
 
-    function _getId(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) private pure returns (bytes32) {
+    function _getId(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        private
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encodePacked(requester, identifier, timestamp, ancillaryData));
     }
 
-    function _settle(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) private returns (uint256 payout) {
+    function _settle(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        private
+        returns (uint256 payout)
+    {
         State state = _getState(requester, identifier, timestamp, ancillaryData);
 
         // Set it to settled so this function can never be entered again.
@@ -445,12 +443,11 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
         );
     }
 
-    function _getRequest(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) private view returns (Request storage) {
+    function _getRequest(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        private
+        view
+        returns (Request storage)
+    {
         return requests[_getId(requester, identifier, timestamp, ancillaryData)];
     }
 
@@ -458,12 +455,11 @@ contract UmaCompatibleOptimisticOracle is OptimisticOracleV2Interface, Lockable,
         require(_liveness < 5200 weeks, "Liveness too large");
     }
 
-    function _getState(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) internal view returns (State) {
+    function _getState(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        internal
+        view
+        returns (State)
+    {
         Request storage request = _getRequest(requester, identifier, timestamp, ancillaryData);
 
         if (address(request.currency) == address(0)) return State.Invalid;

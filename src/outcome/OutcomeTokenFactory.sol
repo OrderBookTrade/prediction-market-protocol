@@ -28,24 +28,18 @@ contract OutcomeTokenFactory {
         _;
     }
 
-    function createOutcomeTokens(
-        uint256 marketId,
-        string[] calldata titles
-    ) external onlyMarketFactory returns (address[] memory) {
+    function createOutcomeTokens(uint256 marketId, string[] calldata titles)
+        external
+        onlyMarketFactory
+        returns (address[] memory)
+    {
         uint256 count = titles.length;
         address[] memory tokens = new address[](count);
 
         for (uint256 i = 0; i < count; i++) {
             OutcomeToken token = new OutcomeToken(
                 string(abi.encodePacked("Outcome ", titles[i])),
-                string(
-                    abi.encodePacked(
-                        "OUT-",
-                        uint2str(marketId),
-                        "-",
-                        uint2str(i)
-                    )
-                ),
+                string(abi.encodePacked("OUT-", uint2str(marketId), "-", uint2str(i))),
                 marketId,
                 i
             );
@@ -57,17 +51,12 @@ contract OutcomeTokenFactory {
         return tokens;
     }
 
-    function getOutcomeToken(
-        uint256 marketId,
-        uint256 outcomeIndex
-    ) external view returns (address) {
+    function getOutcomeToken(uint256 marketId, uint256 outcomeIndex) external view returns (address) {
         return marketOutcomeTokens[marketId][outcomeIndex];
     }
 
     // Helper to convert uint to string for token symbols
-    function uint2str(
-        uint256 _i
-    ) internal pure returns (string memory _uintAsString) {
+    function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
         if (_i == 0) return "0";
         uint256 j = _i;
         uint256 len;

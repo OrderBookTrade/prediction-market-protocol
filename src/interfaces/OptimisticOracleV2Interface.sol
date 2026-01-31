@@ -56,6 +56,7 @@ abstract contract OptimisticOracleV2Interface {
         Disputed, // Disputed, but no DVM price returned yet.
         Resolved, // Disputed and DVM price is available.
         Settled // Final price has been set in the contract (can get here from Expired or Resolved).
+
     }
 
     struct RequestSettings {
@@ -123,12 +124,10 @@ abstract contract OptimisticOracleV2Interface {
      * @return totalBond new bond + final fee that the proposer and disputer will be required to pay. This can be
      * changed again with a subsequent call to setBond().
      */
-    function setBond(
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData,
-        uint256 bond
-    ) external virtual returns (uint256 totalBond);
+    function setBond(bytes32 identifier, uint256 timestamp, bytes memory ancillaryData, uint256 bond)
+        external
+        virtual
+        returns (uint256 totalBond);
 
     /**
      * @notice Sets the request to refund the reward if the proposal is disputed. This can help to "hedge" the caller
@@ -259,12 +258,10 @@ abstract contract OptimisticOracleV2Interface {
      * @return totalBond the amount that's pulled from the disputer's wallet as a bond. The bond will be returned to
      * the disputer once settled if the dispute was valid (the proposal was incorrect).
      */
-    function disputePrice(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) external virtual returns (uint256 totalBond);
+    function disputePrice(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        external
+        virtual
+        returns (uint256 totalBond);
 
     /**
      * @notice Retrieves a price that was previously requested by a caller. Reverts if the request is not settled
@@ -275,11 +272,10 @@ abstract contract OptimisticOracleV2Interface {
      * @param ancillaryData ancillary data of the price being requested.
      * @return resolved price.
      */
-    function settleAndGetPrice(
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) external virtual returns (int256);
+    function settleAndGetPrice(bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        external
+        virtual
+        returns (int256);
 
     /**
      * @notice Attempts to settle an outstanding price request. Will revert if it isn't settleable.
@@ -290,12 +286,10 @@ abstract contract OptimisticOracleV2Interface {
      * @return payout the amount that the "winner" (proposer or disputer) receives on settlement. This amount includes
      * the returned bonds as well as additional rewards.
      */
-    function settle(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) external virtual returns (uint256 payout);
+    function settle(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        external
+        virtual
+        returns (uint256 payout);
 
     /**
      * @notice Gets the current data structure containing all information about a price request.
@@ -305,12 +299,11 @@ abstract contract OptimisticOracleV2Interface {
      * @param ancillaryData ancillary data of the price being requested.
      * @return the Request data structure.
      */
-    function getRequest(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) public view virtual returns (Request memory);
+    function getRequest(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        public
+        view
+        virtual
+        returns (Request memory);
 
     /**
      * @notice Returns the state of a price request.
@@ -320,12 +313,11 @@ abstract contract OptimisticOracleV2Interface {
      * @param ancillaryData ancillary data of the price being requested.
      * @return the State enum value.
      */
-    function getState(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) public view virtual returns (State);
+    function getState(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        public
+        view
+        virtual
+        returns (State);
 
     /**
      * @notice Checks if a given request has resolved or been settled (i.e the optimistic oracle has a price).
@@ -335,15 +327,15 @@ abstract contract OptimisticOracleV2Interface {
      * @param ancillaryData ancillary data of the price being requested.
      * @return true if price has resolved or settled, false otherwise.
      */
-    function hasPrice(
-        address requester,
-        bytes32 identifier,
-        uint256 timestamp,
-        bytes memory ancillaryData
-    ) public view virtual returns (bool);
+    function hasPrice(address requester, bytes32 identifier, uint256 timestamp, bytes memory ancillaryData)
+        public
+        view
+        virtual
+        returns (bool);
 
-    function stampAncillaryData(
-        bytes memory ancillaryData,
-        address requester
-    ) public view virtual returns (bytes memory);
+    function stampAncillaryData(bytes memory ancillaryData, address requester)
+        public
+        view
+        virtual
+        returns (bytes memory);
 }

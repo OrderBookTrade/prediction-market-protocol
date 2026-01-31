@@ -12,12 +12,10 @@ contract OutcomeToken is ERC20, Ownable {
     uint256 public marketId;
     uint256 public outcomeIndex;
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 _marketId,
-        uint256 _outcomeIndex
-    ) ERC20(name, symbol) Ownable(msg.sender) {
+    constructor(string memory name, string memory symbol, uint256 _marketId, uint256 _outcomeIndex)
+        ERC20(name, symbol)
+        Ownable(msg.sender)
+    {
         marketId = _marketId;
         outcomeIndex = _outcomeIndex;
     }

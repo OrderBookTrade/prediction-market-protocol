@@ -14,15 +14,8 @@ contract MarketRegistry {
     mapping(uint256 => MarketTypes.MarketInfo) private _markets;
     uint256 private _marketCount;
 
-    event MarketRegistered(
-        uint256 indexed marketId,
-        address indexed creator,
-        address indexed oracle
-    );
-    event MarketStatusUpdated(
-        uint256 indexed marketId,
-        MarketTypes.MarketStatus status
-    );
+    event MarketRegistered(uint256 indexed marketId, address indexed creator, address indexed oracle);
+    event MarketStatusUpdated(uint256 indexed marketId, MarketTypes.MarketStatus status);
 
     constructor(address _adminController) {
         if (_adminController == address(0)) revert Errors.ZeroAddress();
@@ -36,8 +29,9 @@ contract MarketRegistry {
         uint256 outcomeCount,
         string calldata metadataURI
     ) external returns (uint256) {
-        if (oracle == address(0) || collateralToken == address(0))
+        if (oracle == address(0) || collateralToken == address(0)) {
             revert Errors.ZeroAddress();
+        }
         if (outcomeCount < 2) revert Errors.InvalidParameters();
 
         uint256 marketId = ++_marketCount;
@@ -59,16 +53,15 @@ contract MarketRegistry {
         return marketId;
     }
 
-    function getMarket(
-        uint256 marketId
-    ) external view returns (MarketTypes.MarketInfo memory) {
+    function getMarket(uint256 marketId) external view returns (MarketTypes.MarketInfo memory) {
         return _markets[marketId];
     }
 
     function resolveMarket(uint256 marketId, uint256 outcome) external {
         MarketTypes.MarketInfo storage market = _markets[marketId];
-        if (market.status == MarketTypes.MarketStatus.Resolved)
+        if (market.status == MarketTypes.MarketStatus.Resolved) {
             revert Errors.MarketAlreadyResolved();
+        }
 
         market.resolvedOutcome = outcome;
         market.status = MarketTypes.MarketStatus.Resolved;

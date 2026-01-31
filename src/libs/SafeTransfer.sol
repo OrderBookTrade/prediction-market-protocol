@@ -10,28 +10,15 @@ import {Errors} from "./Errors.sol";
  */
 library SafeTransfer {
     function safeTransfer(address token, address to, uint256 value) internal {
-        (bool success, bytes memory data) = token.call(
-            abi.encodeWithSelector(IERC20.transfer.selector, to, value)
-        );
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, value));
         if (!success || (data.length != 0 && !abi.decode(data, (bool)))) {
             revert Errors.TransferFailed();
         }
     }
 
-    function safeTransferFrom(
-        address token,
-        address from,
-        address to,
-        uint256 value
-    ) internal {
-        (bool success, bytes memory data) = token.call(
-            abi.encodeWithSelector(
-                IERC20.transferFrom.selector,
-                from,
-                to,
-                value
-            )
-        );
+    function safeTransferFrom(address token, address from, address to, uint256 value) internal {
+        (bool success, bytes memory data) =
+            token.call(abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, value));
         if (!success || (data.length != 0 && !abi.decode(data, (bool)))) {
             revert Errors.TransferFailed();
         }

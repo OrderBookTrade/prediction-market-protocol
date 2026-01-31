@@ -16,16 +16,8 @@ contract MarketFactory {
 
     event MarketCreated(uint256 indexed marketId, address indexed creator);
 
-    constructor(
-        address _registry,
-        address _outcomeTokenFactory,
-        address _adminController
-    ) {
-        if (
-            _registry == address(0) ||
-            _outcomeTokenFactory == address(0) ||
-            _adminController == address(0)
-        ) {
+    constructor(address _registry, address _outcomeTokenFactory, address _adminController) {
+        if (_registry == address(0) || _outcomeTokenFactory == address(0) || _adminController == address(0)) {
             revert Errors.ZeroAddress();
         }
         registry = _registry;
@@ -40,21 +32,14 @@ contract MarketFactory {
         string calldata metadataURI,
         string[] calldata outcomeTitles
     ) external returns (uint256) {
-        if (outcomeTitles.length != outcomeCount)
+        if (outcomeTitles.length != outcomeCount) {
             revert Errors.InvalidParameters();
+        }
 
-        uint256 marketId = MarketRegistry(registry).registerMarket(
-            msg.sender,
-            oracle,
-            collateralToken,
-            outcomeCount,
-            metadataURI
-        );
+        uint256 marketId =
+            MarketRegistry(registry).registerMarket(msg.sender, oracle, collateralToken, outcomeCount, metadataURI);
 
-        OutcomeTokenFactory(outcomeTokenFactory).createOutcomeTokens(
-            marketId,
-            outcomeTitles
-        );
+        OutcomeTokenFactory(outcomeTokenFactory).createOutcomeTokens(marketId, outcomeTitles);
 
         emit MarketCreated(marketId, msg.sender);
         return marketId;
