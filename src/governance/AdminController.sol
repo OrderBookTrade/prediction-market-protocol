@@ -9,6 +9,4 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract AdminController is Ownable {
     constructor(address initialOwner) Ownable(initialOwner) {}
-
-    // Add additional admin roles or emergency controls here
 }
