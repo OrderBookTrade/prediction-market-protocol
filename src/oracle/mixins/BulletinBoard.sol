@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {
-    IBulletinBoard,
-    AncillaryDataUpdate
-} from "../interfaces/IBulletinBoard.sol";
+import {IBulletinBoard, AncillaryDataUpdate} from "../interfaces/IBulletinBoard.sol";
 
 /// @title Bulletin Board
 /// @notice A registry containing ancillary data updates
@@ -18,35 +15,25 @@ abstract contract BulletinBoard is IBulletinBoard {
     /// @param update       - The update for the question
     function postUpdate(bytes32 questionID, bytes memory update) external {
         bytes32 id = keccak256(abi.encode(questionID, msg.sender));
-        updates[id].push(
-            AncillaryDataUpdate({timestamp: block.timestamp, update: update})
-        );
+        updates[id].push(AncillaryDataUpdate({timestamp: block.timestamp, update: update}));
         emit AncillaryDataUpdated(questionID, msg.sender, update);
     }
 
     /// @notice Gets all updates for a questionID and owner
     /// @param questionID   - The unique questionID
     /// @param owner        - The address of the question initializer
-    function getUpdates(
-        bytes32 questionID,
-        address owner
-    ) public view returns (AncillaryDataUpdate[] memory) {
+    function getUpdates(bytes32 questionID, address owner) public view returns (AncillaryDataUpdate[] memory) {
         return updates[keccak256(abi.encode(questionID, owner))];
     }
 
     /// @notice Gets the latest update for a questionID and owner
     /// @param questionID   - The unique questionID
     /// @param owner        - The address of the question initializer
-    function getLatestUpdate(
-        bytes32 questionID,
-        address owner
-    ) external view returns (AncillaryDataUpdate memory) {
-        AncillaryDataUpdate[] memory currentUpdates = getUpdates(
-            questionID,
-            owner
-        );
-        if (currentUpdates.length == 0)
+    function getLatestUpdate(bytes32 questionID, address owner) external view returns (AncillaryDataUpdate memory) {
+        AncillaryDataUpdate[] memory currentUpdates = getUpdates(questionID, owner);
+        if (currentUpdates.length == 0) {
             return AncillaryDataUpdate({timestamp: 0, update: ""});
+        }
         return currentUpdates[currentUpdates.length - 1];
     }
 }

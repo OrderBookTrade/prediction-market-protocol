@@ -10,7 +10,7 @@ import {console2, Script} from "forge-std/Script.sol";
 // Block Explorer	https://sepolia.uniscan.xyz/
 
 contract BaseScript is Script {
-    function setUp() public {
+    function setUp() public virtual {
         vm.createSelectFork("https://sepolia.unichain.org");
         uint256 deployerPrivateKey = vm.envUint("PRI_KEY");
         vm.startBroadcast(deployerPrivateKey);

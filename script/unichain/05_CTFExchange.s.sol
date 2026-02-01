@@ -13,6 +13,13 @@ contract DeployCTFExchange is BaseScript {
     address _safeFactory = address(0);
 
     function run() external {
+        // 1. deploy CTFExchange
+        deployCTF();
+
+        // 2.
+    }
+
+    function deployCTF() public {
         CTFExchange exchange = new CTFExchange(_collateral, _ctf, _proxyFactory, _safeFactory);
         console2.log("CTFExchange deployed at:", address(exchange));
         console2.log("  Collateral:", _collateral);

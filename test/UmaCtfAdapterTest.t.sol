@@ -2,13 +2,14 @@
 pragma solidity ^0.8.15;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {UmaCtfAdapter} from "src/oracle/IUmaCtfAdapterEE.sol";
+import {UmaCtfAdapter} from "src/oracle/UmaCtfAdapter.sol";
 import {UmaCompatibleOptimisticOracle} from "src/oracle/UmaCompatibleOptimisticOracle.sol";
 import {ConditionalTokens} from "src/token/ConditionalTokens.sol";
 import {MockERC20} from "src/token/MockERC20.sol";
 import {Finder} from "src/oracle/Finder.sol";
 import {SimpleAddressWhitelist} from "src/oracle/SimpleAddressWhitelist.sol";
-import {QuestionData, IUmaCtfAdapterEE} from "src/oracle/interfaces/IIUmaCtfAdapterEE.sol";
+import {QuestionData, IUmaCtfAdapterEE} from "src/oracle/interfaces/IUmaCtfAdapter.sol";
+import {IAuthEE} from "src/oracle/interfaces/IAuth.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract UmaCtfAdapterTest is Test {
@@ -55,7 +56,8 @@ contract UmaCtfAdapterTest is Test {
         whitelist = new SimpleAddressWhitelist(false); // Start with whitelist mode
 
         // Register CollateralWhitelist in Finder
-        finder.changeImplementationAddress(keccak256(abi.encodePacked("CollateralWhitelist")), address(whitelist));
+        // Note: UmaCtfAdapter uses string "CollateralWhitelist" which gets converted to bytes32 by padding
+        finder.changeImplementationAddress(bytes32("CollateralWhitelist"), address(whitelist));
 
         // Deploy UmaCtfAdapter
         adapter = new UmaCtfAdapter(address(ctf), address(finder), address(oracle));
@@ -86,9 +88,9 @@ contract UmaCtfAdapterTest is Test {
 
     function testInitializeQuestion() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k by 2025?");
-        uint256 reward = 100 ether;
-        uint256 proposalBond = 50 ether;
-        uint256 liveness = 3600;
+        uint256 reward = 0;
+        uint256 proposalBond = 0;
+        uint256 liveness = 0;
 
         vm.prank(user);
         bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), reward, proposalBond, liveness);
@@ -115,7 +117,7 @@ contract UmaCtfAdapterTest is Test {
 
         vm.prank(user);
         vm.expectRevert(IUmaCtfAdapterEE.UnsupportedToken.selector);
-        adapter.initialize(ancillaryData, address(unsupportedToken), 100 ether, 50 ether, 3600);
+        adapter.initialize(ancillaryData, address(unsupportedToken), 0, 0, 0);
     }
 
     function testInitializeWithEmptyAncillaryData() public {
@@ -123,17 +125,17 @@ contract UmaCtfAdapterTest is Test {
 
         vm.prank(user);
         vm.expectRevert(IUmaCtfAdapterEE.InvalidAncillaryData.selector);
-        adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
     }
 
     function testCannotInitializeSameQuestionTwice() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
 
         vm.startPrank(user);
-        adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         vm.expectRevert(IUmaCtfAdapterEE.Initialized.selector);
-        adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
         vm.stopPrank();
     }
 
@@ -145,16 +147,18 @@ contract UmaCtfAdapterTest is Test {
         // Initialize question
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         QuestionData memory question = adapter.getQuestion(questionID);
 
         // Propose price (YES = 1 ether)
         vm.prank(proposer);
-        oracle.proposePrice(address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether);
+        oracle.proposePrice(
+            address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether
+        );
 
         // Wait for liveness
-        vm.warp(block.timestamp + 3601);
+        vm.warp(block.timestamp + DEFAULT_LIVENESS + 1);
 
         // Resolve
         adapter.resolve(questionID);
@@ -167,16 +171,18 @@ contract UmaCtfAdapterTest is Test {
     function testResolveQuestionNo() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         QuestionData memory question = adapter.getQuestion(questionID);
 
         // Propose price (NO = 0)
         vm.prank(proposer);
-        oracle.proposePrice(address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 0);
+        oracle.proposePrice(
+            address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 0
+        );
 
         // Wait for liveness
-        vm.warp(block.timestamp + 3601);
+        vm.warp(block.timestamp + DEFAULT_LIVENESS + 1);
 
         adapter.resolve(questionID);
 
@@ -193,7 +199,7 @@ contract UmaCtfAdapterTest is Test {
     function testCannotResolveWithoutPrice() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         vm.expectRevert(IUmaCtfAdapterEE.NotReadyToResolve.selector);
         adapter.resolve(questionID);
@@ -202,14 +208,16 @@ contract UmaCtfAdapterTest is Test {
     function testCannotResolveAlreadyResolvedQuestion() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         QuestionData memory question = adapter.getQuestion(questionID);
 
         vm.prank(proposer);
-        oracle.proposePrice(address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether);
+        oracle.proposePrice(
+            address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether
+        );
 
-        vm.warp(block.timestamp + 3601);
+        vm.warp(block.timestamp + DEFAULT_LIVENESS + 1);
         adapter.resolve(questionID);
 
         vm.expectRevert(IUmaCtfAdapterEE.Resolved.selector);
@@ -219,16 +227,18 @@ contract UmaCtfAdapterTest is Test {
     function testCannotResolvePausedQuestion() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.pause(questionID);
 
         QuestionData memory question = adapter.getQuestion(questionID);
 
         vm.prank(proposer);
-        oracle.proposePrice(address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether);
+        oracle.proposePrice(
+            address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether
+        );
 
-        vm.warp(block.timestamp + 3601);
+        vm.warp(block.timestamp + DEFAULT_LIVENESS + 1);
 
         vm.expectRevert(IUmaCtfAdapterEE.Paused.selector);
         adapter.resolve(questionID);
@@ -241,7 +251,7 @@ contract UmaCtfAdapterTest is Test {
     function testFlag() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.flag(questionID);
 
@@ -254,7 +264,7 @@ contract UmaCtfAdapterTest is Test {
     function testUnflag() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.flag(questionID);
         adapter.unflag(questionID);
@@ -268,7 +278,7 @@ contract UmaCtfAdapterTest is Test {
     function testCannotUnflagAfterSafetyPeriod() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.flag(questionID);
         vm.warp(block.timestamp + SAFETY_PERIOD + 1);
@@ -280,7 +290,7 @@ contract UmaCtfAdapterTest is Test {
     function testPause() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.pause(questionID);
 
@@ -291,7 +301,7 @@ contract UmaCtfAdapterTest is Test {
     function testUnpause() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.pause(questionID);
         adapter.unpause(questionID);
@@ -303,7 +313,7 @@ contract UmaCtfAdapterTest is Test {
     function testResolveManually() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.flag(questionID);
         vm.warp(block.timestamp + SAFETY_PERIOD + 1);
@@ -321,7 +331,7 @@ contract UmaCtfAdapterTest is Test {
     function testCannotResolveManuallyWithoutFlag() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         uint256[] memory payouts = new uint256[](2);
         payouts[0] = 1;
@@ -334,7 +344,7 @@ contract UmaCtfAdapterTest is Test {
     function testCannotResolveManuallyBeforeSafetyPeriod() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.flag(questionID);
 
@@ -349,7 +359,7 @@ contract UmaCtfAdapterTest is Test {
     function testCannotResolveManuallyWithInvalidPayouts() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.flag(questionID);
         vm.warp(block.timestamp + SAFETY_PERIOD + 1);
@@ -370,7 +380,7 @@ contract UmaCtfAdapterTest is Test {
     function testIsInitialized() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         assertTrue(adapter.isInitialized(questionID));
 
@@ -381,7 +391,7 @@ contract UmaCtfAdapterTest is Test {
     function testIsFlagged() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         assertFalse(adapter.isFlagged(questionID));
 
@@ -392,7 +402,7 @@ contract UmaCtfAdapterTest is Test {
     function testReady() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         // Not ready without price
         assertFalse(adapter.ready(questionID));
@@ -401,28 +411,32 @@ contract UmaCtfAdapterTest is Test {
 
         // Propose price
         vm.prank(proposer);
-        oracle.proposePrice(address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether);
+        oracle.proposePrice(
+            address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether
+        );
 
         // Still not ready during liveness
         assertFalse(adapter.ready(questionID));
 
         // Ready after liveness
-        vm.warp(block.timestamp + 3601);
+        vm.warp(block.timestamp + DEFAULT_LIVENESS + 1);
         assertTrue(adapter.ready(questionID));
     }
 
     function testGetExpectedPayouts() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         QuestionData memory question = adapter.getQuestion(questionID);
 
         // Propose YES
         vm.prank(proposer);
-        oracle.proposePrice(address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether);
+        oracle.proposePrice(
+            address(adapter), YES_OR_NO_IDENTIFIER, question.requestTimestamp, question.ancillaryData, 1 ether
+        );
 
-        vm.warp(block.timestamp + 3601);
+        vm.warp(block.timestamp + DEFAULT_LIVENESS + 1);
 
         uint256[] memory payouts = adapter.getExpectedPayouts(questionID);
         assertEq(payouts.length, 2);
@@ -437,27 +451,27 @@ contract UmaCtfAdapterTest is Test {
     function testOnlyAdminCanFlag() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         vm.prank(user);
-        vm.expectRevert(IUmaCtfAdapterEE.NotAdmin.selector);
+        vm.expectRevert(IAuthEE.NotAdmin.selector);
         adapter.flag(questionID);
     }
 
     function testOnlyAdminCanPause() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         vm.prank(user);
-        vm.expectRevert(IUmaCtfAdapterEE.NotAdmin.selector);
+        vm.expectRevert(IAuthEE.NotAdmin.selector);
         adapter.pause(questionID);
     }
 
     function testOnlyAdminCanResolveManually() public {
         bytes memory ancillaryData = abi.encodePacked("Q: Will ETH reach $10k?");
         vm.prank(user);
-        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 100 ether, 50 ether, 3600);
+        bytes32 questionID = adapter.initialize(ancillaryData, address(rewardToken), 0, 0, 0);
 
         adapter.flag(questionID);
         vm.warp(block.timestamp + SAFETY_PERIOD + 1);
@@ -467,7 +481,7 @@ contract UmaCtfAdapterTest is Test {
         payouts[1] = 0;
 
         vm.prank(user);
-        vm.expectRevert(IUmaCtfAdapterEE.NotAdmin.selector);
+        vm.expectRevert(IAuthEE.NotAdmin.selector);
         adapter.resolveManually(questionID, payouts);
     }
 }

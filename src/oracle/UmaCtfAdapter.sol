@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {
-    IERC20
-} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {Auth} from "./mixins/Auth.sol";
 import {BulletinBoard} from "./mixins/BulletinBoard.sol";
@@ -22,12 +20,7 @@ import {QuestionData, IUmaCtfAdapter} from "./interfaces/IUmaCtfAdapter.sol";
 
 /// @title UmaCtfAdapter
 /// @notice Enables resolution of Polymarket CTF markets via UMA's Optimistic Oracle
-contract UmaCtfAdapter is
-    IUmaCtfAdapter,
-    Auth,
-    BulletinBoard,
-    IOptimisticRequester
-{
+contract UmaCtfAdapter is IUmaCtfAdapter, Auth, BulletinBoard, IOptimisticRequester {
     /*///////////////////////////////////////////////////////////////////
                             IMMUTABLES 
     //////////////////////////////////////////////////////////////////*/
@@ -56,8 +49,9 @@ contract UmaCtfAdapter is
     mapping(bytes32 => QuestionData) public questions;
 
     modifier onlyOptimisticOracle() {
-        if (msg.sender != address(optimisticOracle))
+        if (msg.sender != address(optimisticOracle)) {
             revert NotOptimisticOracle();
+        }
         _;
     }
 
@@ -69,9 +63,7 @@ contract UmaCtfAdapter is
         ctf = IConditionalTokens(_ctf);
         IFinder finder = IFinder(_finder);
         optimisticOracle = IOptimisticOracleV2(_oo);
-        collateralWhitelist = IAddressWhitelist(
-            finder.getImplementationAddress("CollateralWhitelist")
-        );
+        collateralWhitelist = IAddressWhitelist(finder.getImplementationAddress("CollateralWhitelist"));
     }
 
     /*///////////////////////////////////////////////////////////////////
@@ -102,15 +94,14 @@ contract UmaCtfAdapter is
         uint256 proposalBond,
         uint256 liveness
     ) external returns (bytes32 questionID) {
-        if (!collateralWhitelist.isOnWhitelist(rewardToken))
+        if (!collateralWhitelist.isOnWhitelist(rewardToken)) {
             revert UnsupportedToken();
+        }
 
-        bytes memory data = AncillaryDataLib._appendAncillaryData(
-            msg.sender,
-            ancillaryData
-        );
-        if (ancillaryData.length == 0 || data.length > MAX_ANCILLARY_DATA)
+        bytes memory data = AncillaryDataLib._appendAncillaryData(msg.sender, ancillaryData);
+        if (ancillaryData.length == 0 || data.length > MAX_ANCILLARY_DATA) {
             revert InvalidAncillaryData();
+        }
 
         questionID = keccak256(data);
 
@@ -119,40 +110,15 @@ contract UmaCtfAdapter is
         uint256 timestamp = block.timestamp;
 
         // Persist the question parameters in storage
-        _saveQuestion(
-            msg.sender,
-            questionID,
-            data,
-            timestamp,
-            rewardToken,
-            reward,
-            proposalBond,
-            liveness
-        );
+        _saveQuestion(msg.sender, questionID, data, timestamp, rewardToken, reward, proposalBond, liveness);
 
         // Prepare the question on the CTF
         ctf.prepareCondition(address(this), questionID, 2);
 
         // Request a price for the question from the OO
-        _requestPrice(
-            msg.sender,
-            timestamp,
-            data,
-            rewardToken,
-            reward,
-            proposalBond,
-            liveness
-        );
+        _requestPrice(msg.sender, timestamp, data, rewardToken, reward, proposalBond, liveness);
 
-        emit QuestionInitialized(
-            questionID,
-            timestamp,
-            msg.sender,
-            data,
-            rewardToken,
-            reward,
-            proposalBond
-        );
+        emit QuestionInitialized(questionID, timestamp, msg.sender, data, rewardToken, reward, proposalBond);
     }
 
     /// @notice Checks whether a questionID is ready to be resolved
@@ -180,9 +146,7 @@ contract UmaCtfAdapter is
 
     /// @notice Retrieves the expected payout array of the question
     /// @param questionID - The unique questionID of the question
-    function getExpectedPayouts(
-        bytes32 questionID
-    ) public view returns (uint256[] memory) {
+    function getExpectedPayouts(bytes32 questionID) public view returns (uint256[] memory) {
         QuestionData storage questionData = questions[questionID];
 
         if (!_isInitialized(questionData)) revert NotInitialized();
@@ -192,14 +156,9 @@ contract UmaCtfAdapter is
         if (!_hasPrice(questionData)) revert PriceNotAvailable();
 
         // Fetches price from OO
-        int256 price = optimisticOracle
-            .getRequest(
-                address(this),
-                YES_OR_NO_IDENTIFIER,
-                questionData.requestTimestamp,
-                questionData.ancillaryData
-            )
-            .resolvedPrice;
+        int256 price = optimisticOracle.getRequest(
+            address(this), YES_OR_NO_IDENTIFIER, questionData.requestTimestamp, questionData.ancillaryData
+        ).resolvedPrice;
 
         return _constructPayouts(price);
     }
@@ -207,12 +166,7 @@ contract UmaCtfAdapter is
     /// @notice Callback which is executed on dispute
     /// Resets the question and sends out a new price request to the OO
     /// @param ancillaryData    - Ancillary data of the request
-    function priceDisputed(
-        bytes32,
-        uint256,
-        bytes memory ancillaryData,
-        uint256
-    ) external onlyOptimisticOracle {
+    function priceDisputed(bytes32, uint256, bytes memory ancillaryData, uint256) external onlyOptimisticOracle {
         bytes32 questionID = keccak256(ancillaryData);
         QuestionData storage questionData = questions[questionID];
 
@@ -220,11 +174,7 @@ contract UmaCtfAdapter is
         // any storage parameters.
         // Refund the reward to the question creator
         if (questionData.resolved) {
-            TransferHelper._transfer(
-                questionData.rewardToken,
-                questionData.creator,
-                questionData.reward
-            );
+            TransferHelper._transfer(questionData.rewardToken, questionData.creator, questionData.reward);
             return;
         }
 
@@ -252,9 +202,7 @@ contract UmaCtfAdapter is
 
     /// @notice Gets the QuestionData for the given questionID
     /// @param questionID - The unique questionID
-    function getQuestion(
-        bytes32 questionID
-    ) external view returns (QuestionData memory) {
+    function getQuestion(bytes32 questionID) external view returns (QuestionData memory) {
         return questions[questionID];
     }
 
@@ -271,9 +219,7 @@ contract UmaCtfAdapter is
         if (_isFlagged(questionData)) revert Flagged();
         if (questionData.resolved) revert Resolved();
 
-        questionData.manualResolutionTimestamp =
-            block.timestamp +
-            SAFETY_PERIOD;
+        questionData.manualResolutionTimestamp = block.timestamp + SAFETY_PERIOD;
         questionData.paused = true;
 
         emit QuestionFlagged(questionID);
@@ -287,8 +233,9 @@ contract UmaCtfAdapter is
         if (!_isInitialized(questionData)) revert NotInitialized();
         if (!_isFlagged(questionData)) revert NotFlagged();
         if (questionData.resolved) revert Resolved();
-        if (block.timestamp > questionData.manualResolutionTimestamp)
+        if (block.timestamp > questionData.manualResolutionTimestamp) {
             revert SafetyPeriodPassed();
+        }
 
         questionData.manualResolutionTimestamp = 0;
         questionData.paused = false;
@@ -314,17 +261,15 @@ contract UmaCtfAdapter is
     /// @notice Allows an admin to resolve a CTF market manually
     /// @param questionID   - The unique questionID of the question
     /// @param payouts      - Array of position payouts for the referenced question
-    function resolveManually(
-        bytes32 questionID,
-        uint256[] calldata payouts
-    ) external onlyAdmin {
+    function resolveManually(bytes32 questionID, uint256[] calldata payouts) external onlyAdmin {
         QuestionData storage questionData = questions[questionID];
 
         if (!_isValidPayoutArray(payouts)) revert InvalidPayouts();
         if (!_isInitialized(questionData)) revert NotInitialized();
         if (!_isFlagged(questionData)) revert NotFlagged();
-        if (block.timestamp < questionData.manualResolutionTimestamp)
+        if (block.timestamp < questionData.manualResolutionTimestamp) {
             revert SafetyPeriodNotPassed();
+        }
 
         questionData.resolved = true;
 
@@ -361,9 +306,7 @@ contract UmaCtfAdapter is
                             INTERNAL FUNCTIONS 
     //////////////////////////////////////////////////////////////////*/
 
-    function _ready(
-        QuestionData storage questionData
-    ) internal view returns (bool) {
+    function _ready(QuestionData storage questionData) internal view returns (bool) {
         if (!_isInitialized(questionData)) return false;
         if (questionData.paused) return false;
         if (questionData.resolved) return false;
@@ -418,43 +361,22 @@ contract UmaCtfAdapter is
             // If the requestor is not the Adapter, the requestor pays for the price request
             // If not, the Adapter pays for the price request
             if (requestor != address(this)) {
-                TransferHelper._transferFromERC20(
-                    rewardToken,
-                    requestor,
-                    address(this),
-                    reward
-                );
+                TransferHelper._transferFromERC20(rewardToken, requestor, address(this), reward);
             }
 
             // Approve the OO as spender on the reward token from the Adapter
-            if (
-                IERC20(rewardToken).allowance(
-                    address(this),
-                    address(optimisticOracle)
-                ) < reward
-            ) {
-                IERC20(rewardToken).approve(
-                    address(optimisticOracle),
-                    type(uint256).max
-                );
+            if (IERC20(rewardToken).allowance(address(this), address(optimisticOracle)) < reward) {
+                IERC20(rewardToken).approve(address(optimisticOracle), type(uint256).max);
             }
         }
 
         // Send a price request to the Optimistic oracle
         optimisticOracle.requestPrice(
-            YES_OR_NO_IDENTIFIER,
-            requestTimestamp,
-            ancillaryData,
-            IERC20(rewardToken),
-            reward
+            YES_OR_NO_IDENTIFIER, requestTimestamp, ancillaryData, IERC20(rewardToken), reward
         );
 
         // Ensure the price request is event based
-        optimisticOracle.setEventBased(
-            YES_OR_NO_IDENTIFIER,
-            requestTimestamp,
-            ancillaryData
-        );
+        optimisticOracle.setEventBased(YES_OR_NO_IDENTIFIER, requestTimestamp, ancillaryData);
 
         // Ensure that the dispute callback flag is set
         optimisticOracle.setCallbacks(
@@ -467,31 +389,19 @@ contract UmaCtfAdapter is
         );
 
         // Update the proposal bond on the Optimistic oracle if necessary
-        if (bond > 0)
-            optimisticOracle.setBond(
-                YES_OR_NO_IDENTIFIER,
-                requestTimestamp,
-                ancillaryData,
-                bond
-            );
+        if (bond > 0) {
+            optimisticOracle.setBond(YES_OR_NO_IDENTIFIER, requestTimestamp, ancillaryData, bond);
+        }
         if (liveness > 0) {
-            optimisticOracle.setCustomLiveness(
-                YES_OR_NO_IDENTIFIER,
-                requestTimestamp,
-                ancillaryData,
-                liveness
-            );
+            optimisticOracle.setCustomLiveness(YES_OR_NO_IDENTIFIER, requestTimestamp, ancillaryData, liveness);
         }
     }
 
     /// @notice Reset the question by updating the requestTimestamp field and sending a new price request to the OO
     /// @param questionID - The unique questionID
-    function _reset(
-        address requestor,
-        bytes32 questionID,
-        bool resetRefund,
-        QuestionData storage questionData
-    ) internal {
+    function _reset(address requestor, bytes32 questionID, bool resetRefund, QuestionData storage questionData)
+        internal
+    {
         uint256 requestTimestamp = block.timestamp;
         // Update the question parameters in storage
         questionData.requestTimestamp = requestTimestamp;
@@ -515,20 +425,16 @@ contract UmaCtfAdapter is
     /// @notice Resolves the underlying CTF market
     /// @param questionID   - The unique questionID of the question
     /// @param questionData - The question data parameters
-    function _resolve(
-        bytes32 questionID,
-        QuestionData storage questionData
-    ) internal {
+    function _resolve(bytes32 questionID, QuestionData storage questionData) internal {
         // Get the price from the OO
         int256 price = optimisticOracle.settleAndGetPrice(
-            YES_OR_NO_IDENTIFIER,
-            questionData.requestTimestamp,
-            questionData.ancillaryData
+            YES_OR_NO_IDENTIFIER, questionData.requestTimestamp, questionData.ancillaryData
         );
 
         // If the OO returns the ignore price, reset the question
-        if (price == _ignorePrice())
+        if (price == _ignorePrice()) {
             return _reset(address(this), questionID, true, questionData);
+        }
 
         // Set resolved flag
         questionData.resolved = true;
@@ -546,49 +452,33 @@ contract UmaCtfAdapter is
         emit QuestionResolved(questionID, price, payouts);
     }
 
-    function _hasPrice(
-        QuestionData storage questionData
-    ) internal view returns (bool) {
-        return
-            optimisticOracle.hasPrice(
-                address(this),
-                YES_OR_NO_IDENTIFIER,
-                questionData.requestTimestamp,
-                questionData.ancillaryData
-            );
+    function _hasPrice(QuestionData storage questionData) internal view returns (bool) {
+        return optimisticOracle.hasPrice(
+            address(this), YES_OR_NO_IDENTIFIER, questionData.requestTimestamp, questionData.ancillaryData
+        );
     }
 
     function _refund(QuestionData storage questionData) internal {
-        return
-            TransferHelper._transfer(
-                questionData.rewardToken,
-                questionData.creator,
-                questionData.reward
-            );
+        return TransferHelper._transfer(questionData.rewardToken, questionData.creator, questionData.reward);
     }
 
-    function _isFlagged(
-        QuestionData storage questionData
-    ) internal view returns (bool) {
+    function _isFlagged(QuestionData storage questionData) internal view returns (bool) {
         return questionData.manualResolutionTimestamp > 0;
     }
 
-    function _isInitialized(
-        QuestionData storage questionData
-    ) internal view returns (bool) {
+    function _isInitialized(QuestionData storage questionData) internal view returns (bool) {
         return questionData.ancillaryData.length > 0;
     }
 
     /// @notice Construct the payout array given the price
     /// @param price - The price retrieved from the OO
-    function _constructPayouts(
-        int256 price
-    ) internal pure returns (uint256[] memory) {
+    function _constructPayouts(int256 price) internal pure returns (uint256[] memory) {
         // Payouts: [YES, NO]
         uint256[] memory payouts = new uint256[](2);
         // Valid prices are 0, 0.5 and 1
-        if (price != 0 && price != 0.5 ether && price != 1 ether)
+        if (price != 0 && price != 0.5 ether && price != 1 ether) {
             revert InvalidOOPrice();
+        }
 
         if (price == 0) {
             // NO: Report [Yes, No] as [0, 1]
@@ -609,9 +499,7 @@ contract UmaCtfAdapter is
 
     /// @notice Validates a payout array from the admin
     /// @param payouts - The payout array
-    function _isValidPayoutArray(
-        uint256[] calldata payouts
-    ) internal pure returns (bool) {
+    function _isValidPayoutArray(uint256[] calldata payouts) internal pure returns (bool) {
         return PayoutHelperLib.isValidPayoutArray(payouts);
     }
 

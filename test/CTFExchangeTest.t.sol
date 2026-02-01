@@ -6,12 +6,7 @@ import {CTFExchange} from "src/exchange/CTFExchange.sol";
 import {ConditionalTokens} from "src/token/ConditionalTokens.sol";
 import {MockERC20} from "src/token/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {
-    Order,
-    Side,
-    SignatureType,
-    ORDER_TYPEHASH
-} from "src/exchange/libraries/OrderStructs.sol";
+import {Order, Side, SignatureType, ORDER_TYPEHASH} from "src/exchange/libraries/OrderStructs.sol";
 
 contract CTFExchangeTest is Test {
     CTFExchange exchange;
@@ -34,12 +29,7 @@ contract CTFExchangeTest is Test {
         collateral = new MockERC20();
 
         // Deploy Exchange with zero address factories
-        exchange = new CTFExchange(
-            address(collateral),
-            address(ctf),
-            address(0),
-            address(0)
-        );
+        exchange = new CTFExchange(address(collateral), address(ctf), address(0), address(0));
 
         // Prepare CTF Condition
         ctf.prepareCondition(address(this), QUESTION_ID, 2);
@@ -48,10 +38,7 @@ contract CTFExchangeTest is Test {
         tokenId = ctf.getPositionId(IERC20(address(collateral)), collectionId);
 
         bytes32 collectionId1 = ctf.getCollectionId(bytes32(0), conditionId, 2); // Outcome 1
-        uint256 tokenId1 = ctf.getPositionId(
-            IERC20(address(collateral)),
-            collectionId1
-        );
+        uint256 tokenId1 = ctf.getPositionId(IERC20(address(collateral)), collectionId1);
 
         // Register Token Pair
         exchange.registerToken(tokenId, tokenId1, conditionId);
@@ -133,28 +120,12 @@ contract CTFExchangeTest is Test {
 
         // Verify Balances
         // Maker spent 100 USDC, got 200 YES
-        assertEq(
-            collateral.balanceOf(maker),
-            makerCollateralBefore - 100 ether,
-            "Maker should spend collateral"
-        );
-        assertEq(
-            ctf.balanceOf(maker, tokenId),
-            makerTokenBefore + 200 ether,
-            "Maker should receive tokens"
-        );
+        assertEq(collateral.balanceOf(maker), makerCollateralBefore - 100 ether, "Maker should spend collateral");
+        assertEq(ctf.balanceOf(maker, tokenId), makerTokenBefore + 200 ether, "Maker should receive tokens");
 
         // Taker got 100 USDC, spent 200 YES
-        assertEq(
-            collateral.balanceOf(taker),
-            takerCollateralBefore + 100 ether,
-            "Taker should receive collateral"
-        );
-        assertEq(
-            ctf.balanceOf(taker, tokenId),
-            takerTokenBefore - 200 ether,
-            "Taker should spend tokens"
-        );
+        assertEq(collateral.balanceOf(taker), takerCollateralBefore + 100 ether, "Taker should receive collateral");
+        assertEq(ctf.balanceOf(taker, tokenId), takerTokenBefore - 200 ether, "Taker should spend tokens");
     }
 
     function testFillOrder_SellSide() public {
@@ -196,28 +167,12 @@ contract CTFExchangeTest is Test {
 
         // Verify Balances
         // Maker gave 200 YES, got 100 USDC
-        assertEq(
-            collateral.balanceOf(maker),
-            makerCollateralBefore + 100 ether,
-            "Maker should receive collateral"
-        );
-        assertEq(
-            ctf.balanceOf(maker, tokenId),
-            makerTokenBefore - 200 ether,
-            "Maker should spend tokens"
-        );
+        assertEq(collateral.balanceOf(maker), makerCollateralBefore + 100 ether, "Maker should receive collateral");
+        assertEq(ctf.balanceOf(maker, tokenId), makerTokenBefore - 200 ether, "Maker should spend tokens");
 
         // Taker gave 100 USDC, got 200 YES
-        assertEq(
-            collateral.balanceOf(taker),
-            takerCollateralBefore - 100 ether,
-            "Taker should spend collateral"
-        );
-        assertEq(
-            ctf.balanceOf(taker, tokenId),
-            takerTokenBefore + 200 ether,
-            "Taker should receive tokens"
-        );
+        assertEq(collateral.balanceOf(taker), takerCollateralBefore - 100 ether, "Taker should spend collateral");
+        assertEq(ctf.balanceOf(taker, tokenId), takerTokenBefore + 200 ether, "Taker should receive tokens");
     }
 
     function _mintCTFTokensTo(address user, uint256 amount) internal {
@@ -236,13 +191,7 @@ contract CTFExchangeTest is Test {
 
         vm.startPrank(user);
         collateral.approve(address(ctf), mintAmount);
-        ctf.splitPosition(
-            IERC20(address(collateral)),
-            bytes32(0),
-            conditionId,
-            partition,
-            mintAmount
-        );
+        ctf.splitPosition(IERC20(address(collateral)), bytes32(0), conditionId, partition, mintAmount);
         vm.stopPrank();
     }
 }
