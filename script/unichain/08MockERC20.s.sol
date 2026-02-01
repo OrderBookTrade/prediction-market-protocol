@@ -8,7 +8,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 // Mock collateral token for testing
 contract MockUSDC is ERC20 {
     constructor() ERC20("Mock USDC", "USDC") {
-        _mint(msg.sender, 1_000_000 * 10**6); // 1M USDC
+        _mint(msg.sender, 1_000_000 * 10 ** 6); // 1M USDC
     }
 
     function decimals() public pure override returns (uint8) {
