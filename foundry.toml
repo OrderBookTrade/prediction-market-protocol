@@ -6,3 +6,6 @@ via_ir = true
 optimizer = true
 optimizer_runs = 200
 
+# Etherscan API configuration for contract verification
+[etherscan]
+unichain-sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.uniscan.xyz/api" }

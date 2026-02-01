@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {CTHelpers} from "src/library/CTHelpers.sol";
+import {SimpleCTHelpers} from "src/library/SimpleCTHelpers.sol";
 
 contract ConditionalTokens is ERC1155 {
     /// @dev Emitted upon the successful preparation of a condition.
@@ -61,7 +61,7 @@ contract ConditionalTokens is ERC1155 {
         // Limit of 256 because we use a partition array that is a number of 256 bits.
         require(outcomeSlotCount <= 256, "too many outcome slots");
         require(outcomeSlotCount > 1, "there should be more than one outcome slot");
-        bytes32 conditionId = CTHelpers.getConditionId(oracle, questionId, outcomeSlotCount);
+        bytes32 conditionId = SimpleCTHelpers.getConditionId(oracle, questionId, outcomeSlotCount);
         require(payoutNumerators[conditionId].length == 0, "condition already prepared");
         payoutNumerators[conditionId] = new uint256[](outcomeSlotCount);
         emit ConditionPreparation(conditionId, oracle, questionId, outcomeSlotCount);
@@ -73,7 +73,7 @@ contract ConditionalTokens is ERC1155 {
     function reportPayouts(bytes32 questionId, uint256[] calldata payouts) external {
         uint256 outcomeSlotCount = payouts.length;
         require(outcomeSlotCount > 1, "there should be more than one outcome slot");
-        bytes32 conditionId = CTHelpers.getConditionId(msg.sender, questionId, outcomeSlotCount);
+        bytes32 conditionId = SimpleCTHelpers.getConditionId(msg.sender, questionId, outcomeSlotCount);
         require(payoutNumerators[conditionId].length == outcomeSlotCount, "condition not prepared or found");
         require(payoutDenominator[conditionId] == 0, "payout denominator already set");
 
@@ -111,8 +111,8 @@ contract ConditionalTokens is ERC1155 {
             require(indexSet > 0 && indexSet < fullIndexSet, "got invalid index set");
             require((indexSet & freeIndexSet) == indexSet, "partition not disjoint");
             freeIndexSet ^= indexSet;
-            positionIds[i] = CTHelpers.getPositionId(
-                collateralToken, CTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet)
+            positionIds[i] = SimpleCTHelpers.getPositionId(
+                collateralToken, SimpleCTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet)
             );
             amounts[i] = amount;
         }
@@ -124,14 +124,14 @@ contract ConditionalTokens is ERC1155 {
                     "could not receive collateral tokens"
                 );
             } else {
-                _burn(msg.sender, CTHelpers.getPositionId(collateralToken, parentCollectionId), amount);
+                _burn(msg.sender, SimpleCTHelpers.getPositionId(collateralToken, parentCollectionId), amount);
             }
         } else {
             _burn(
                 msg.sender,
-                CTHelpers.getPositionId(
+                SimpleCTHelpers.getPositionId(
                     collateralToken,
-                    CTHelpers.getCollectionId(parentCollectionId, conditionId, fullIndexSet ^ freeIndexSet)
+                    SimpleCTHelpers.getCollectionId(parentCollectionId, conditionId, fullIndexSet ^ freeIndexSet)
                 ),
                 amount
             );
@@ -161,8 +161,8 @@ contract ConditionalTokens is ERC1155 {
             require(indexSet > 0 && indexSet < fullIndexSet, "got invalid index set");
             require((indexSet & freeIndexSet) == indexSet, "partition not disjoint");
             freeIndexSet ^= indexSet;
-            positionIds[i] = CTHelpers.getPositionId(
-                collateralToken, CTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet)
+            positionIds[i] = SimpleCTHelpers.getPositionId(
+                collateralToken, SimpleCTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet)
             );
             amounts[i] = amount;
         }
@@ -172,14 +172,14 @@ contract ConditionalTokens is ERC1155 {
             if (parentCollectionId == bytes32(0)) {
                 require(collateralToken.transfer(msg.sender, amount), "could not send collateral tokens");
             } else {
-                _mint(msg.sender, CTHelpers.getPositionId(collateralToken, parentCollectionId), amount, "");
+                _mint(msg.sender, SimpleCTHelpers.getPositionId(collateralToken, parentCollectionId), amount, "");
             }
         } else {
             _mint(
                 msg.sender,
-                CTHelpers.getPositionId(
+                SimpleCTHelpers.getPositionId(
                     collateralToken,
-                    CTHelpers.getCollectionId(parentCollectionId, conditionId, fullIndexSet ^ freeIndexSet)
+                    SimpleCTHelpers.getCollectionId(parentCollectionId, conditionId, fullIndexSet ^ freeIndexSet)
                 ),
                 amount,
                 ""
@@ -206,8 +206,8 @@ contract ConditionalTokens is ERC1155 {
         for (uint256 i = 0; i < indexSets.length; i++) {
             uint256 indexSet = indexSets[i];
             require(indexSet > 0 && indexSet < fullIndexSet, "got invalid index set");
-            uint256 positionId = CTHelpers.getPositionId(
-                collateralToken, CTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet)
+            uint256 positionId = SimpleCTHelpers.getPositionId(
+                collateralToken, SimpleCTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet)
             );
 
             uint256 payoutNumerator = 0;
@@ -230,7 +230,7 @@ contract ConditionalTokens is ERC1155 {
                     collateralToken.transfer(msg.sender, totalPayout), "could not transfer payout to message sender"
                 );
             } else {
-                _mint(msg.sender, CTHelpers.getPositionId(collateralToken, parentCollectionId), totalPayout, "");
+                _mint(msg.sender, SimpleCTHelpers.getPositionId(collateralToken, parentCollectionId), totalPayout, "");
             }
         }
         emit PayoutRedemption(msg.sender, collateralToken, parentCollectionId, conditionId, indexSets, totalPayout);
@@ -245,7 +245,7 @@ contract ConditionalTokens is ERC1155 {
         pure
         returns (bytes32)
     {
-        return CTHelpers.getConditionId(oracle, questionId, outcomeSlotCount);
+        return SimpleCTHelpers.getConditionId(oracle, questionId, outcomeSlotCount);
     }
 
     function getCollectionId(bytes32 parentCollectionId, bytes32 conditionId, uint256 indexSet)
@@ -253,10 +253,10 @@ contract ConditionalTokens is ERC1155 {
         view
         returns (bytes32)
     {
-        return CTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet);
+        return SimpleCTHelpers.getCollectionId(parentCollectionId, conditionId, indexSet);
     }
 
     function getPositionId(IERC20 collateralToken, bytes32 collectionId) external pure returns (uint256) {
-        return CTHelpers.getPositionId(collateralToken, collectionId);
+        return SimpleCTHelpers.getPositionId(collateralToken, collectionId);
     }
 }

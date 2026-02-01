@@ -1,30 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MockERC20 is IERC20 {
-    function totalSupply() external pure override returns (uint256) {
-        return 0;
+contract MockERC20 is ERC20 {
+    constructor() ERC20("Mock USDC", "USDC") {
+        _mint(msg.sender, 1000000 * 10 ** 18);
     }
 
-    function balanceOf(address) external pure override returns (uint256) {
-        return 0;
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
     }
 
-    function transfer(address, uint256) external pure override returns (bool) {
-        return true;
-    }
-
-    function allowance(address, address) external pure override returns (uint256) {
-        return 0;
-    }
-
-    function approve(address, uint256) external pure override returns (bool) {
-        return true;
-    }
-
-    function transferFrom(address, address, uint256) external pure override returns (bool) {
-        return true;
+    // USDC has 18 decimals
+    function decimals() public pure override returns (uint8) {
+        return 18;
     }
 }
