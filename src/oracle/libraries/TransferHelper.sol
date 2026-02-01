@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.15;
 
-import {SafeTransferLib, ERC20} from "lib/solmate/src/utils/SafeTransferLib.sol";
+import {
+    SafeTransferLib,
+    ERC20
+} from "lib/solmate/src/utils/SafeTransferLib.sol";
 
 /// @title TransferHelper
 /// @notice Helper library to transfer tokens
@@ -11,7 +14,12 @@ library TransferHelper {
     /// @param from     - The originating address from which the tokens will be transferred
     /// @param to       - The destination address of the transfer
     /// @param amount   - The amount to be transferred
-    function _transferFromERC20(address token, address from, address to, uint256 amount) internal {
+    function _transferFromERC20(
+        address token,
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
         SafeTransferLib.safeTransferFrom(ERC20(token), from, to, amount);
     }
 

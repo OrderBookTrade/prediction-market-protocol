@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.15;
 
 import {IFinder} from "./interfaces/IFinder.sol";
 
@@ -15,12 +15,17 @@ contract Finder is IFinder {
         owner = msg.sender;
     }
 
-    function changeImplementationAddress(bytes32 interfaceName, address implementationAddress) external override {
+    function changeImplementationAddress(
+        bytes32 interfaceName,
+        address implementationAddress
+    ) external override {
         require(msg.sender == owner, "Not owner");
         interfaces[interfaceName] = implementationAddress;
     }
 
-    function getImplementationAddress(bytes32 interfaceName) external view override returns (address) {
+    function getImplementationAddress(
+        bytes32 interfaceName
+    ) external view override returns (address) {
         return interfaces[interfaceName];
     }
 }

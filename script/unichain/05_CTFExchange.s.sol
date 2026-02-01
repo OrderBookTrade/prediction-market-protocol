@@ -6,10 +6,11 @@ import {BaseScript} from "../BaseScript.s.sol";
 import {CTFExchange} from "src/exchange/CTFExchange.sol";
 
 contract DeployCTFExchange is BaseScript {
-    address _collateral;
-    address _ctf;
-    address _proxyFactory;
-    address _safeFactory;
+    // usdc token
+    address _collateral = 0xE5687DB12c99F99bCbC165643d7FeF2C0139aa92;
+    address _ctf = 0x9d8E5bC640338E1054C540668712De69Fe39f057;
+    address _proxyFactory = address(0);
+    address _safeFactory = address(0);
 
     function run() external {
         CTFExchange exchange = new CTFExchange(_collateral, _ctf, _proxyFactory, _safeFactory);
