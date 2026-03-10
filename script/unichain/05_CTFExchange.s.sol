@@ -16,7 +16,7 @@ contract DeployCTFExchange is BaseScript {
         // 1. deploy CTFExchange
         deployCTF();
 
-        // 2.
+      
     }
 
     function deployCTF() public {
