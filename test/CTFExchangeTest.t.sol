@@ -23,6 +23,7 @@ contract CTFExchangeTest is Test {
     bytes32 conditionId;
     bytes32 collectionId;
     uint256 tokenId;
+    uint256 tokenId1;
 
     function setUp() public {
         ctf = new ConditionalTokens();
@@ -38,7 +39,7 @@ contract CTFExchangeTest is Test {
         tokenId = ctf.getPositionId(IERC20(address(collateral)), collectionId);
 
         bytes32 collectionId1 = ctf.getCollectionId(bytes32(0), conditionId, 2); // Outcome 1
-        uint256 tokenId1 = ctf.getPositionId(IERC20(address(collateral)), collectionId1);
+        tokenId1 = ctf.getPositionId(IERC20(address(collateral)), collectionId1);
 
         // Register Token Pair
         exchange.registerToken(tokenId, tokenId1, conditionId);
@@ -193,5 +194,93 @@ contract CTFExchangeTest is Test {
         collateral.approve(address(ctf), mintAmount);
         ctf.splitPosition(IERC20(address(collateral)), bytes32(0), conditionId, partition, mintAmount);
         vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        MATCHING ENGINE INTEGRATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testMatchOrders_Mint() public {
+        // Taker (Order 1): BUY YES (tokenId)
+        // Maker (Order 2): BUY NO (tokenId1)
+        // MatchType.MINT
+        
+        uint256 takerAmountCollateral = 60 ether; // Taker pays 60 USDC
+        uint256 takerWantedShares = 100 ether; // Taker wants 100 YES
+        
+        uint256 makerAmountCollateral = 40 ether; // Maker pays 40 USDC
+        uint256 makerWantedShares = 100 ether; // Maker wants 100 NO
+
+        Order memory takerOrder = Order({
+            salt: 10,
+            maker: taker,
+            signer: taker,
+            taker: address(0),
+            tokenId: tokenId, // YES
+            makerAmount: takerAmountCollateral,
+            takerAmount: takerWantedShares,
+            expiration: block.timestamp + 1000,
+            nonce: 0,
+            feeRateBps: 0,
+            side: Side.BUY,
+            signatureType: SignatureType.EOA,
+            signature: ""
+        });
+
+        Order memory makerOrder = Order({
+            salt: 11,
+            maker: maker,
+            signer: maker,
+            taker: address(0),
+            tokenId: tokenId1, // NO
+            makerAmount: makerAmountCollateral,
+            takerAmount: makerWantedShares,
+            expiration: block.timestamp + 1000,
+            nonce: 0,
+            feeRateBps: 0,
+            side: Side.BUY,
+            signatureType: SignatureType.EOA,
+            signature: ""
+        });
+
+        // Sign Taker Order
+        bytes32 takerHash = exchange.hashOrder(takerOrder);
+        (uint8 tv, bytes32 tr, bytes32 ts) = vm.sign(takerPk, takerHash);
+        takerOrder.signature = abi.encodePacked(tr, ts, tv);
+
+        // Sign Maker Order
+        bytes32 makerHash = exchange.hashOrder(makerOrder);
+        (uint8 mv, bytes32 mr, bytes32 ms) = vm.sign(makerPk, makerHash);
+        makerOrder.signature = abi.encodePacked(mr, ms, mv);
+
+        Order[] memory makerOrders = new Order[](1);
+        makerOrders[0] = makerOrder;
+
+        uint256[] memory makerFillAmounts = new uint256[](1);
+        makerFillAmounts[0] = makerAmountCollateral; // fill 40 USDC worth of maker order
+
+        uint256 takerCollateralBefore = collateral.balanceOf(taker);
+        uint256 makerCollateralBefore = collateral.balanceOf(maker);
+        
+        // Match Engine acts as Operator
+        vm.prank(taker); // 'taker' acts as registered operator in setup
+        exchange.matchOrders(
+            takerOrder,
+            makerOrders,
+            takerAmountCollateral, // fill 60 USDC worth of taker order
+            makerFillAmounts
+        );
+
+        // Verify Balances
+        // Taker paid 60 USDC, got 100 YES
+        assertEq(collateral.balanceOf(taker), takerCollateralBefore - 60 ether);
+        assertEq(ctf.balanceOf(taker, tokenId), 100 ether);
+
+        // Maker paid 40 USDC, got 100 NO
+        assertEq(collateral.balanceOf(maker), makerCollateralBefore - 40 ether);
+        assertEq(ctf.balanceOf(maker, tokenId1), 100 ether);
+        
+        // Exchange should have 100 USDC locked as collateral for the CTF tokens
+        assertEq(collateral.balanceOf(address(ctf)), 100 ether);
     }
 }

@@ -11,7 +11,7 @@ import {console2, Script} from "forge-std/Script.sol";
 
 contract BaseScript is Script {
     function setUp() public virtual {
-        vm.createSelectFork("https://sepolia.unichain.org");
+        vm.createSelectFork("https://mainnet.base.org");
         uint256 deployerPrivateKey = vm.envUint("PRI_KEY");
         vm.startBroadcast(deployerPrivateKey);
     }
