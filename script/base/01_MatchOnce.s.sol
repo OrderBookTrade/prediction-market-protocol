@@ -44,8 +44,8 @@ contract MatchOnce is Script {
 
     // ── Order size (realistic small fills for demo) ──────────
     /// Sell 100 YES tokens at 0.60 USDC each
-    uint256 constant FILL_TOKENS = 100 * 1e6;   // 100 tokens (1e6 precision)
-    uint256 constant FILL_USDC   =  60 * 1e6;   //  60 USDC  (6 decimals)
+    uint256 constant FILL_TOKENS = 100 * 1e6; // 100 tokens (1e6 precision)
+    uint256 constant FILL_USDC = 60 * 1e6; //  60 USDC  (6 decimals)
 
     /// Refill threshold / amount — restock when balance drops below FILL_* * 10
     uint256 constant REFILL_AMOUNT = 10_000 * 1e6;
@@ -55,19 +55,19 @@ contract MatchOnce is Script {
 
     function run() external {
         // ── Read environment ──────────────────────────────────
-        exchange   = vm.envAddress("CTF_EXCHANGE");
+        exchange = vm.envAddress("CTF_EXCHANGE");
         tokenIdYes = vm.envUint("TOKEN_ID_YES");
         deployerKey = vm.envUint("PRI_KEY");
-        makerKey    = vm.envOr("MAKER_PRIVATE_KEY", deployerKey);
-        takerKey    = vm.envOr("TAKER_PRIVATE_KEY", deployerKey);
-        maker       = vm.addr(makerKey);
-        taker       = vm.addr(takerKey);
-        runCounter  = vm.envOr("RUN_COUNTER", uint256(0));
+        makerKey = vm.envOr("MAKER_PRIVATE_KEY", deployerKey);
+        takerKey = vm.envOr("TAKER_PRIVATE_KEY", deployerKey);
+        maker = vm.addr(makerKey);
+        taker = vm.addr(takerKey);
+        runCounter = vm.envOr("RUN_COUNTER", uint256(0));
 
         // ── Resolve collateral / CTF from exchange ────────────
         CTFExchange exchangeContract = CTFExchange(exchange);
         address collateral = exchangeContract.getCollateral();
-        address ctf        = exchangeContract.getCtf();
+        address ctf = exchangeContract.getCtf();
         bytes32 conditionId = vm.envBytes32("CONDITION_ID");
 
         // ── Read on-chain nonces ──────────────────────────────
@@ -88,36 +88,36 @@ contract MatchOnce is Script {
 
         // ── Build maker order (SELL YES tokens) ──────────────
         Order memory makerOrder = Order({
-            salt:          uint256(keccak256(abi.encodePacked(block.timestamp, maker, runCounter, "maker"))),
-            maker:         maker,
-            signer:        maker,
-            taker:         address(0),
-            tokenId:       tokenIdYes,
-            makerAmount:   FILL_TOKENS,     // sell 100 YES tokens
-            takerAmount:   FILL_USDC,       // receive 60 USDC
-            expiration:    block.timestamp + 1 hours,
-            nonce:         makerNonce,
-            feeRateBps:    0,
-            side:          Side.SELL,
+            salt: uint256(keccak256(abi.encodePacked(block.timestamp, maker, runCounter, "maker"))),
+            maker: maker,
+            signer: maker,
+            taker: address(0),
+            tokenId: tokenIdYes,
+            makerAmount: FILL_TOKENS, // sell 100 YES tokens
+            takerAmount: FILL_USDC, // receive 60 USDC
+            expiration: block.timestamp + 1 hours,
+            nonce: makerNonce,
+            feeRateBps: 0,
+            side: Side.SELL,
             signatureType: SignatureType.EOA,
-            signature:     ""
+            signature: ""
         });
 
         // ── Build taker order (BUY YES tokens) ───────────────
         Order memory takerOrder = Order({
-            salt:          uint256(keccak256(abi.encodePacked(block.timestamp, taker, runCounter, "taker"))),
-            maker:         taker,
-            signer:        taker,
-            taker:         address(0),
-            tokenId:       tokenIdYes,
-            makerAmount:   FILL_USDC,       // pay 60 USDC
-            takerAmount:   FILL_TOKENS,     // receive 100 YES tokens
-            expiration:    block.timestamp + 1 hours,
-            nonce:         takerNonce,
-            feeRateBps:    0,
-            side:          Side.BUY,
+            salt: uint256(keccak256(abi.encodePacked(block.timestamp, taker, runCounter, "taker"))),
+            maker: taker,
+            signer: taker,
+            taker: address(0),
+            tokenId: tokenIdYes,
+            makerAmount: FILL_USDC, // pay 60 USDC
+            takerAmount: FILL_TOKENS, // receive 100 YES tokens
+            expiration: block.timestamp + 1 hours,
+            nonce: takerNonce,
+            feeRateBps: 0,
+            side: Side.BUY,
             signatureType: SignatureType.EOA,
-            signature:     ""
+            signature: ""
         });
 
         // ── Sign orders (EIP-712) ─────────────────────────────
@@ -128,10 +128,10 @@ contract MatchOnce is Script {
         takerOrder.signature = _sign(takerKey, takerHash);
 
         // ── Broadcast matchOrders as operator ────────────────
-        Order[] memory makerOrders        = new Order[](1);
+        Order[] memory makerOrders = new Order[](1);
         uint256[] memory makerFillAmounts = new uint256[](1);
-        makerOrders[0]        = makerOrder;
-        makerFillAmounts[0]   = FILL_TOKENS;
+        makerOrders[0] = makerOrder;
+        makerFillAmounts[0] = FILL_TOKENS;
 
         vm.startBroadcast(deployerKey);
         exchangeContract.matchOrders(takerOrder, makerOrders, FILL_USDC, makerFillAmounts);
@@ -148,21 +148,14 @@ contract MatchOnce is Script {
      * @dev Ensures taker has enough USDC and has approved the exchange.
      *      Calls MockUSDC.mint() if balance is insufficient (testnet only).
      */
-    function _ensureTakerReady(
-        address collateral,
-        address exch,
-        uint256 takerPk,
-        address takerAddr
-    ) internal {
-        uint256 bal  = IERC20(collateral).balanceOf(takerAddr);
+    function _ensureTakerReady(address collateral, address exch, uint256 takerPk, address takerAddr) internal {
+        uint256 bal = IERC20(collateral).balanceOf(takerAddr);
         uint256 allw = IERC20(collateral).allowance(takerAddr, exch);
 
         if (bal < FILL_USDC) {
             console2.log("  [auto] taker USDC low, minting", REFILL_AMOUNT);
-            vm.startBroadcast(takerPk);  // mint to self; MockUSDC allows any caller
-            (bool ok,) = collateral.call(
-                abi.encodeWithSignature("mint(address,uint256)", takerAddr, REFILL_AMOUNT)
-            );
+            vm.startBroadcast(takerPk); // mint to self; MockUSDC allows any caller
+            (bool ok,) = collateral.call(abi.encodeWithSignature("mint(address,uint256)", takerAddr, REFILL_AMOUNT));
             vm.stopBroadcast();
             require(ok, "mint() failed - is COLLATERAL a MockUSDC?");
         }
@@ -188,17 +181,15 @@ contract MatchOnce is Script {
         address makerAddr,
         uint256 yesId
     ) internal {
-        uint256 yesBal    = IERC1155(ctf).balanceOf(makerAddr, yesId);
-        bool    approved  = IERC1155(ctf).isApprovedForAll(makerAddr, exch);
+        uint256 yesBal = IERC1155(ctf).balanceOf(makerAddr, yesId);
+        bool approved = IERC1155(ctf).isApprovedForAll(makerAddr, exch);
 
         if (yesBal < FILL_TOKENS) {
             console2.log("  [auto] maker YES low, minting + splitting", REFILL_AMOUNT);
 
             // 1. Mint MockUSDC to maker
             vm.startBroadcast(makerPk);
-            (bool ok,) = collateral.call(
-                abi.encodeWithSignature("mint(address,uint256)", makerAddr, REFILL_AMOUNT)
-            );
+            (bool ok,) = collateral.call(abi.encodeWithSignature("mint(address,uint256)", makerAddr, REFILL_AMOUNT));
             require(ok, "mint() failed - is COLLATERAL a MockUSDC?");
 
             // 2. Approve CTF to spend USDC
@@ -208,9 +199,7 @@ contract MatchOnce is Script {
             uint256[] memory partition = new uint256[](2);
             partition[0] = 1; // YES
             partition[1] = 2; // NO
-            ConditionalTokens(ctf).splitPosition(
-                IERC20(collateral), bytes32(0), conditionId, partition, REFILL_AMOUNT
-            );
+            ConditionalTokens(ctf).splitPosition(IERC20(collateral), bytes32(0), conditionId, partition, REFILL_AMOUNT);
             vm.stopBroadcast();
         }
 
@@ -224,11 +213,7 @@ contract MatchOnce is Script {
 
     // ── Helpers ───────────────────────────────────────────────
 
-    function _sign(uint256 privateKey, bytes32 finalHash)
-        internal
-        pure
-        returns (bytes memory sig)
-    {
+    function _sign(uint256 privateKey, bytes32 finalHash) internal pure returns (bytes memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, finalHash);
         sig = abi.encodePacked(r, s, v);
     }
@@ -250,12 +235,22 @@ contract MatchOnce is Script {
     }
 
     function _hashOrder(Order memory o) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            ORDER_TYPEHASH,
-            o.salt, o.maker, o.signer, o.taker,
-            o.tokenId, o.makerAmount, o.takerAmount,
-            o.expiration, o.nonce, o.feeRateBps,
-            uint8(o.side), uint8(o.signatureType)
-        ));
+        return keccak256(
+            abi.encode(
+                ORDER_TYPEHASH,
+                o.salt,
+                o.maker,
+                o.signer,
+                o.taker,
+                o.tokenId,
+                o.makerAmount,
+                o.takerAmount,
+                o.expiration,
+                o.nonce,
+                o.feeRateBps,
+                uint8(o.side),
+                uint8(o.signatureType)
+            )
+        );
     }
 }

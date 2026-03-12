@@ -9,9 +9,13 @@ import {console2, Script} from "forge-std/Script.sol";
 // Currency Symbol	ETH
 // Block Explorer	https://sepolia.uniscan.xyz/
 
+// Chain Name Base Sepolia
+// https://base-sepolia-rpc.publicnode.com
+
 contract BaseScript is Script {
     function setUp() public virtual {
-        vm.createSelectFork("https://mainnet.base.org");
+        vm.createSelectFork("https://base-sepolia-rpc.publicnode.com");
+        // vm.createSelectFork("https://mainnet.base.org");
         uint256 deployerPrivateKey = vm.envUint("PRI_KEY");
         vm.startBroadcast(deployerPrivateKey);
     }

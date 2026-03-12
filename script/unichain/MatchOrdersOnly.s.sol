@@ -20,19 +20,19 @@ import {Order, Side, SignatureType} from "src/exchange/libraries/OrderStructs.so
 contract MatchOrdersOnly is BaseScript {
     // ============ UPDATE THESE ADDRESSES ============
     address constant EXCHANGE = address(0); // Your deployed CTFExchange address
-    address constant MAKER = address(0);    // Maker address
-    address constant TAKER = address(0);    // Taker address
-    uint256 constant TOKEN_ID = 0;          // Token ID to trade
+    address constant MAKER = address(0); // Maker address
+    address constant TAKER = address(0); // Taker address
+    uint256 constant TOKEN_ID = 0; // Token ID to trade
 
     // Maker order parameters
-    uint256 constant MAKER_AMOUNT = 100 * 1e6;  // Sell 100 tokens
-    uint256 constant MAKER_PRICE = 60 * 1e6;     // For 60 USDC (0.6 per token)
+    uint256 constant MAKER_AMOUNT = 100 * 1e6; // Sell 100 tokens
+    uint256 constant MAKER_PRICE = 60 * 1e6; // For 60 USDC (0.6 per token)
 
     // Taker order parameters
-    uint256 constant TAKER_AMOUNT = 100 * 1e6;  // Buy 100 tokens
-    uint256 constant TAKER_PRICE = 60 * 1e6;     // Pay 60 USDC (0.6 per token)
+    uint256 constant TAKER_AMOUNT = 100 * 1e6; // Buy 100 tokens
+    uint256 constant TAKER_PRICE = 60 * 1e6; // Pay 60 USDC (0.6 per token)
 
-    function run() external  {
+    function run() external {
         require(EXCHANGE != address(0), "Set EXCHANGE address");
         require(MAKER != address(0), "Set MAKER address");
         require(TAKER != address(0), "Set TAKER address");
@@ -87,12 +87,7 @@ contract MatchOrdersOnly is BaseScript {
         console2.log("Amount:", MAKER_AMOUNT / 1e6);
         console2.log("Price:", MAKER_PRICE / 1e6, "USDC");
 
-        exchange.matchOrders(
-            takerOrder,
-            makerOrders,
-            TAKER_AMOUNT,
-            makerFillAmounts
-        );
+        exchange.matchOrders(takerOrder, makerOrders, TAKER_AMOUNT, makerFillAmounts);
 
         console2.log("Orders matched successfully!");
     }

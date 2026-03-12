@@ -15,8 +15,6 @@ contract DeployCTFExchange is BaseScript {
     function run() external {
         // 1. deploy CTFExchange
         deployCTF();
-
-      
     }
 
     function deployCTF() public {
