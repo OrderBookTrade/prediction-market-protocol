@@ -32,7 +32,7 @@ contract DeployCTFExchange is BaseScript {
     // Deployed exchange address (will be set after deployment)
     address public exchange;
 
-    function run() external  {
+    function run() external {
         console2.log("=== Deploying CTFExchange on Unichain Testnet ===\n");
         console2.log("Deployer:", msg.sender);
         console2.log("Chain ID:", block.chainid);
@@ -44,12 +44,7 @@ contract DeployCTFExchange is BaseScript {
 
         // Deploy CTFExchange
         console2.log("Deploying CTFExchange...");
-        CTFExchange exchangeContract = new CTFExchange(
-            COLLATERAL,
-            CTF,
-            PROXY_FACTORY,
-            SAFE_FACTORY
-        );
+        CTFExchange exchangeContract = new CTFExchange(COLLATERAL, CTF, PROXY_FACTORY, SAFE_FACTORY);
 
         exchange = address(exchangeContract);
 
@@ -87,7 +82,7 @@ contract DeployCTFExchange is BaseScript {
      * @notice Setup exchange after deployment (optional)
      * @dev Call this after deployment to setup operator and initial configuration
      */
-    function setupExchange(address operator) external  {
+    function setupExchange(address operator) external {
         require(exchange != address(0), "Deploy exchange first");
         require(operator != address(0), "Invalid operator");
 

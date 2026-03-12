@@ -6,11 +6,7 @@ import {BaseScript} from "../BaseScript.s.sol";
 import {CTFExchange} from "src/exchange/CTFExchange.sol";
 import {ConditionalTokens} from "src/token/ConditionalTokens.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {
-    Order,
-    Side,
-    SignatureType
-} from "src/exchange/libraries/OrderStructs.sol";
+import {Order, Side, SignatureType} from "src/exchange/libraries/OrderStructs.sol";
 
 /**
  * @title MatchOrders Script
@@ -64,9 +60,7 @@ contract MatchOrders is BaseScript {
      * @notice Main entry point - deploys exchange and matches orders
      */
     function run() external {
-        console2.log(
-            "\n=== Starting Order Matching Script (Using Existing Exchange) ===\n"
-        );
+        console2.log("\n=== Starting Order Matching Script (Using Existing Exchange) ===\n");
         console2.log("Using Exchange at:", exchange);
 
         // 1. Setup exchange (admin, operator, tokens)
@@ -85,7 +79,7 @@ contract MatchOrders is BaseScript {
     /**
      * @notice Setup exchange: add operator and register tokens
      */
-    function setupExchange() public  {
+    function setupExchange() public {
         console2.log("\n=== Setting Up Exchange ===");
 
         CTFExchange exchangeContract = CTFExchange(exchange);
@@ -100,15 +94,13 @@ contract MatchOrders is BaseScript {
     /**
      * @notice Setup a test market for trading
      */
-    function setupMarket() public  {
+    function setupMarket() public {
         console2.log("\n=== Setting Up Test Market ===");
 
         ConditionalTokens ctf = ConditionalTokens(CTF);
 
         // Create a question ID (unique identifier for the market)
-        questionId = keccak256(
-            abi.encodePacked("Will ETH reach $10k in 2026?", block.timestamp)
-        );
+        questionId = keccak256(abi.encodePacked("Will ETH reach $10k in 2026?", block.timestamp));
 
         // Prepare condition on CTF
         ctf.prepareCondition(
@@ -120,16 +112,8 @@ contract MatchOrders is BaseScript {
         conditionId = ctf.getConditionId(operator, questionId, 2);
 
         // Calculate token IDs for YES and NO outcomes
-        bytes32 collectionIdYes = ctf.getCollectionId(
-            bytes32(0),
-            conditionId,
-            1
-        ); // YES = index 1
-        bytes32 collectionIdNo = ctf.getCollectionId(
-            bytes32(0),
-            conditionId,
-            2
-        ); // NO = index 2
+        bytes32 collectionIdYes = ctf.getCollectionId(bytes32(0), conditionId, 1); // YES = index 1
+        bytes32 collectionIdNo = ctf.getCollectionId(bytes32(0), conditionId, 2); // NO = index 2
 
         tokenIdYes = ctf.getPositionId(IERC20(USDC), collectionIdYes);
         tokenIdNo = ctf.getPositionId(IERC20(USDC), collectionIdNo);
@@ -148,7 +132,7 @@ contract MatchOrders is BaseScript {
     /**
      * @notice Fund test accounts with USDC and outcome tokens
      */
-    function fundAccounts() public  {
+    function fundAccounts() public {
         console2.log("\n=== Funding Accounts ===");
 
         IERC20 usdc = IERC20(USDC);
@@ -184,11 +168,7 @@ contract MatchOrders is BaseScript {
         );
         vm.stopBroadcast();
 
-        console2.log(
-            "Maker split",
-            fundAmount / 1e6,
-            "USDC into YES/NO tokens"
-        );
+        console2.log("Maker split", fundAmount / 1e6, "USDC into YES/NO tokens");
 
         // Approve exchange to spend tokens
         vm.startBroadcast(makerPrivateKey);
@@ -213,7 +193,7 @@ contract MatchOrders is BaseScript {
     /**
      * @notice Create and match orders
      */
-    function createAndMatchOrders() public  {
+    function createAndMatchOrders() public {
         console2.log("\n=== Creating and Matching Orders ===");
 
         CTFExchange exchangeContract = CTFExchange(exchange);
@@ -229,21 +209,13 @@ contract MatchOrders is BaseScript {
         console2.log("  Token ID:", makerOrder.tokenId);
         console2.log("  Maker Amount:", makerOrder.makerAmount);
         console2.log("  Taker Amount:", makerOrder.takerAmount);
-        console2.log(
-            "  Price:",
-            (makerOrder.takerAmount * 1e18) / makerOrder.makerAmount / 1e12,
-            "USDC per token"
-        );
+        console2.log("  Price:", (makerOrder.takerAmount * 1e18) / makerOrder.makerAmount / 1e12, "USDC per token");
 
         console2.log("\nTaker Order (BUY):");
         console2.log("  Token ID:", takerOrder.tokenId);
         console2.log("  Maker Amount:", takerOrder.makerAmount);
         console2.log("  Taker Amount:", takerOrder.takerAmount);
-        console2.log(
-            "  Price:",
-            (takerOrder.makerAmount * 1e18) / takerOrder.takerAmount / 1e12,
-            "USDC per token"
-        );
+        console2.log("  Price:", (takerOrder.makerAmount * 1e18) / takerOrder.takerAmount / 1e12, "USDC per token");
 
         // Match orders
         Order[] memory makerOrders = new Order[](1);
@@ -258,12 +230,7 @@ contract MatchOrders is BaseScript {
         console2.log("  Taker fill amount:", takerFillAmount / 1e6);
         console2.log("  Maker fill amount:", makerFillAmounts[0] / 1e6);
 
-        exchangeContract.matchOrders(
-            takerOrder,
-            makerOrders,
-            takerFillAmount,
-            makerFillAmounts
-        );
+        exchangeContract.matchOrders(takerOrder, makerOrders, takerFillAmount, makerFillAmounts);
 
         console2.log("Orders matched successfully!");
     }
@@ -273,9 +240,7 @@ contract MatchOrders is BaseScript {
      */
     function createMakerOrder() internal view returns (Order memory) {
         Order memory order = Order({
-            salt: uint256(
-                keccak256(abi.encodePacked(block.timestamp, maker, "maker"))
-            ),
+            salt: uint256(keccak256(abi.encodePacked(block.timestamp, maker, "maker"))),
             maker: maker,
             signer: maker,
             taker: address(0), // Public order
@@ -292,13 +257,8 @@ contract MatchOrders is BaseScript {
 
         // Sign the order
         bytes32 orderHash = hashOrder(order);
-        bytes32 ethSignedHash = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", orderHash)
-        );
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            makerPrivateKey,
-            ethSignedHash
-        );
+        bytes32 ethSignedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", orderHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(makerPrivateKey, ethSignedHash);
         order.signature = abi.encodePacked(r, s, v);
 
         return order;
@@ -309,9 +269,7 @@ contract MatchOrders is BaseScript {
      */
     function createTakerOrder() internal view returns (Order memory) {
         Order memory order = Order({
-            salt: uint256(
-                keccak256(abi.encodePacked(block.timestamp, taker, "taker"))
-            ),
+            salt: uint256(keccak256(abi.encodePacked(block.timestamp, taker, "taker"))),
             maker: taker,
             signer: taker,
             taker: address(0), // Public order
@@ -328,13 +286,8 @@ contract MatchOrders is BaseScript {
 
         // Sign the order
         bytes32 orderHash = hashOrder(order);
-        bytes32 ethSignedHash = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", orderHash)
-        );
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            takerPrivateKey,
-            ethSignedHash
-        );
+        bytes32 ethSignedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", orderHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(takerPrivateKey, ethSignedHash);
         order.signature = abi.encodePacked(r, s, v);
 
         return order;
@@ -344,25 +297,24 @@ contract MatchOrders is BaseScript {
      * @notice Hash an order for signing
      */
     function hashOrder(Order memory order) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    keccak256(
-                        "Order(uint256 salt,address maker,address signer,address taker,uint256 tokenId,uint256 makerAmount,uint256 takerAmount,uint256 expiration,uint256 nonce,uint256 feeRateBps,uint8 side,uint8 signatureType)"
-                    ),
-                    order.salt,
-                    order.maker,
-                    order.signer,
-                    order.taker,
-                    order.tokenId,
-                    order.makerAmount,
-                    order.takerAmount,
-                    order.expiration,
-                    order.nonce,
-                    order.feeRateBps,
-                    uint8(order.side),
-                    uint8(order.signatureType)
-                )
-            );
+        return keccak256(
+            abi.encode(
+                keccak256(
+                    "Order(uint256 salt,address maker,address signer,address taker,uint256 tokenId,uint256 makerAmount,uint256 takerAmount,uint256 expiration,uint256 nonce,uint256 feeRateBps,uint8 side,uint8 signatureType)"
+                ),
+                order.salt,
+                order.maker,
+                order.signer,
+                order.taker,
+                order.tokenId,
+                order.makerAmount,
+                order.takerAmount,
+                order.expiration,
+                order.nonce,
+                order.feeRateBps,
+                uint8(order.side),
+                uint8(order.signatureType)
+            )
+        );
     }
 }

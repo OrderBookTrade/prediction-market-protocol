@@ -204,10 +204,10 @@ contract CTFExchangeTest is Test {
         // Taker (Order 1): BUY YES (tokenId)
         // Maker (Order 2): BUY NO (tokenId1)
         // MatchType.MINT
-        
+
         uint256 takerAmountCollateral = 60 ether; // Taker pays 60 USDC
         uint256 takerWantedShares = 100 ether; // Taker wants 100 YES
-        
+
         uint256 makerAmountCollateral = 40 ether; // Maker pays 40 USDC
         uint256 makerWantedShares = 100 ether; // Maker wants 100 NO
 
@@ -261,7 +261,7 @@ contract CTFExchangeTest is Test {
 
         uint256 takerCollateralBefore = collateral.balanceOf(taker);
         uint256 makerCollateralBefore = collateral.balanceOf(maker);
-        
+
         // Match Engine acts as Operator
         vm.prank(taker); // 'taker' acts as registered operator in setup
         exchange.matchOrders(
@@ -279,7 +279,7 @@ contract CTFExchangeTest is Test {
         // Maker paid 40 USDC, got 100 NO
         assertEq(collateral.balanceOf(maker), makerCollateralBefore - 40 ether);
         assertEq(ctf.balanceOf(maker, tokenId1), 100 ether);
-        
+
         // Exchange should have 100 USDC locked as collateral for the CTF tokens
         assertEq(collateral.balanceOf(address(ctf)), 100 ether);
     }

@@ -46,7 +46,7 @@ contract DeployBase is Script {
 
     function run() external {
         uint256 deployerKey = vm.envUint("PRI_KEY");
-        address deployer    = vm.addr(deployerKey);
+        address deployer = vm.addr(deployerKey);
 
         console2.log("\n=====================================================");
         console2.log(" Base Mainnet - Prediction Market - Deploy");
@@ -71,18 +71,16 @@ contract DeployBase is Script {
 
         // 4. Prepare prediction market condition
         //    "Will ETH reach $10k in 2026?" — oracle = deployer for demo
-        bytes32 questionId = keccak256(
-            abi.encodePacked("Will ETH reach $10k in 2026?", uint256(block.chainid))
-        );
+        bytes32 questionId = keccak256(abi.encodePacked("Will ETH reach $10k in 2026?", uint256(block.chainid)));
         ConditionalTokens(ctf).prepareCondition(deployer, questionId, 2);
         conditionId = ConditionalTokens(ctf).getConditionId(deployer, questionId, 2);
         console2.log("[4] conditionId      :", vm.toString(conditionId));
 
         // 5. Compute YES / NO position IDs
         bytes32 colIdYes = ConditionalTokens(ctf).getCollectionId(bytes32(0), conditionId, 1);
-        bytes32 colIdNo  = ConditionalTokens(ctf).getCollectionId(bytes32(0), conditionId, 2);
+        bytes32 colIdNo = ConditionalTokens(ctf).getCollectionId(bytes32(0), conditionId, 2);
         tokenIdYes = ConditionalTokens(ctf).getPositionId(IERC20(USDC), colIdYes);
-        tokenIdNo  = ConditionalTokens(ctf).getPositionId(IERC20(USDC), colIdNo);
+        tokenIdNo = ConditionalTokens(ctf).getPositionId(IERC20(USDC), colIdNo);
         console2.log("[5] tokenIdYes       :", tokenIdYes);
         console2.log("    tokenIdNo        :", tokenIdNo);
 
@@ -96,12 +94,12 @@ contract DeployBase is Script {
         console2.log("\n=====================================================");
         console2.log(" COPY INTO YOUR .env FILE");
         console2.log("=====================================================");
-        console2.log("CTF_EXCHANGE=%s",  exchange);
-        console2.log("CTF=%s",           ctf);
-        console2.log("COLLATERAL=%s",    USDC);
-        console2.log("TOKEN_ID_YES=%s",  vm.toString(bytes32(tokenIdYes)));
-        console2.log("TOKEN_ID_NO=%s",   vm.toString(bytes32(tokenIdNo)));
-        console2.log("CONDITION_ID=%s",  vm.toString(conditionId));
+        console2.log("CTF_EXCHANGE=%s", exchange);
+        console2.log("CTF=%s", ctf);
+        console2.log("COLLATERAL=%s", USDC);
+        console2.log("TOKEN_ID_YES=%s", vm.toString(bytes32(tokenIdYes)));
+        console2.log("TOKEN_ID_NO=%s", vm.toString(bytes32(tokenIdNo)));
+        console2.log("CONDITION_ID=%s", vm.toString(conditionId));
         console2.log("=====================================================");
         console2.log("Next step: forge script script/base/03_PrepareMarket.s.sol:PrepareMarket");
     }

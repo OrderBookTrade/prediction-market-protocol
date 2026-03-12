@@ -37,15 +37,15 @@ contract PrepareMarket is Script {
 
     function run() external {
         // ── Read env ──────────────────────────────────────────
-        address exchange    = vm.envAddress("CTF_EXCHANGE");
-        address ctf         = vm.envAddress("CTF");
-        address collateral  = vm.envAddress("COLLATERAL");
+        address exchange = vm.envAddress("CTF_EXCHANGE");
+        address ctf = vm.envAddress("CTF");
+        address collateral = vm.envAddress("COLLATERAL");
         bytes32 conditionId = vm.envBytes32("CONDITION_ID");
 
         uint256 makerKey = vm.envOr("MAKER_PRIVATE_KEY", vm.envUint("PRI_KEY"));
         uint256 takerKey = vm.envOr("TAKER_PRIVATE_KEY", vm.envUint("PRI_KEY"));
-        address maker    = vm.addr(makerKey);
-        address taker    = vm.addr(takerKey);
+        address maker = vm.addr(makerKey);
+        address taker = vm.addr(takerKey);
 
         console2.log("\n=====================================================");
         console2.log(" Base Mainnet - Prepare Market");
@@ -70,9 +70,7 @@ contract PrepareMarket is Script {
         uint256[] memory partition = new uint256[](2);
         partition[0] = 1; // YES (index set bit 0)
         partition[1] = 2; // NO  (index set bit 1)
-        ConditionalTokens(ctf).splitPosition(
-            IERC20(collateral), bytes32(0), conditionId, partition, SPLIT_AMOUNT
-        );
+        ConditionalTokens(ctf).splitPosition(IERC20(collateral), bytes32(0), conditionId, partition, SPLIT_AMOUNT);
         console2.log("[2] Maker split", SPLIT_AMOUNT / 1e6, "USDC -> YES/NO tokens");
 
         // Maker approves exchange to move outcome tokens
