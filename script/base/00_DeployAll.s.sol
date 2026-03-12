@@ -58,7 +58,7 @@ contract DeployAll is BaseScript {
         // mintToken();
 
         // 9. token functions
-        tokenfunctions();
+        // tokenfunctions();
         
     }
 
