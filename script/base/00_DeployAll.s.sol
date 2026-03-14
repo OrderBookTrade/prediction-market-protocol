@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {console2, Script} from "forge-std/Script.sol";
 import {MockERC20} from "src/token/MockERC20.sol";
+import {MockUSDC} from "src/token/MockUSDC.sol";
 import {CTFExchange} from "src/exchange/CTFExchange.sol";
 import {ConditionalTokens} from "src/token/ConditionalTokens.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,6 +21,9 @@ contract DeployAll is BaseScript {
     address public exchange = 0x5d77a932C2efACABF990a54A8eF22F2aa32444e6;
     bytes32 public conditionId = 0x71a8791245813fd994ba56a3b29f6d144c336fc6ca7ceeb1ce9f0c655a2a8ee1;
 
+
+    address public obt_mock_usdc = 0x348475f4B999069169AC6C5835f290caf0d2267b;
+
     uint256 public tokenIdYes = 51928502454085488533676410679622233630937844134737312924826155211086641513529;
     uint256 public tokenIdNo = 13473792840601473894283420647594440607876447428059787707682808263508849049915;
 
@@ -34,6 +38,11 @@ contract DeployAll is BaseScript {
     function run() public {
         // 1.deploy mock usdc
         // deployUSDCToken();
+
+        // 2. deploy Mock USDC Token of decimal 6
+        // deployMockUSDC();
+
+
 
         // 2. deploy CTF Token
         // deployCTFToken();
@@ -55,21 +64,22 @@ contract DeployAll is BaseScript {
         // resgisterToken();
 
         // 8. mint token to maker and taker 
-        // mintToken();
+        mintToken();
 
         // 9. token functions
         // tokenfunctions();
         
     }
 
-
-    
-
-
   
     function deployUSDCToken() public {
         MockERC20 usdc = new MockERC20();
         console2.log("deployed usdc token ");
+    }
+
+    function deployMockUSDC() public {
+        MockUSDC usdc = new MockUSDC();
+        console2.log("deployed mock usdc token ");
     }
 
     function deployCTFToken() public {
@@ -113,8 +123,10 @@ contract DeployAll is BaseScript {
 
     // mint token
     function mintToken() public {
-        MockERC20(collateral).mint(maker, FUND_AMOUNT);
-        MockERC20(collateral).mint(taker, FUND_AMOUNT);
+        // MockERC20(collateral).mint(maker, FUND_AMOUNT);
+        // MockERC20(collateral).mint(taker, FUND_AMOUNT);
+
+        MockUSDC(obt_mock_usdc).mint(deployer, 1000e6);
         console2.log("[8] Minted", FUND_AMOUNT / 1e6, "mUSDC to maker & taker");
     }
 
