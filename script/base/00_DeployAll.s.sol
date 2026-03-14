@@ -16,16 +16,19 @@ contract DeployAll is BaseScript {
     uint256 constant SPLIT_AMOUNT = 5_000 * 1e18; // 5,000 split into YES/NO tokens
 
     // ── State (set during run) ───────────────────────────────
-    address public collateral = 0xB54Cfef749d104b54D514538cAdb281f2E951079;
-    address public ctf = 0x9b3a701DBd7e564916310c6D16c93ca8a2eE8921;
-    address public exchange = 0x5d77a932C2efACABF990a54A8eF22F2aa32444e6;
-    bytes32 public conditionId = 0x71a8791245813fd994ba56a3b29f6d144c336fc6ca7ceeb1ce9f0c655a2a8ee1;
-
-
     address public obt_mock_usdc = 0x348475f4B999069169AC6C5835f290caf0d2267b;
 
-    uint256 public tokenIdYes = 51928502454085488533676410679622233630937844134737312924826155211086641513529;
-    uint256 public tokenIdNo = 13473792840601473894283420647594440607876447428059787707682808263508849049915;
+    address public collateral = 0x348475f4B999069169AC6C5835f290caf0d2267b;
+    address public ctf = 0xa69b5Ce1e56256cCF85d1910906Fe27Db6722e9f;
+    address public exchange = 0xA518f5394f4bc8b3DC7478FAF7614ADbCa96B27f;
+
+    // == Logs ==
+    //   [6] tokenIdYes       : 109446563909122268726163789479242001029893107976120913855023459460148077033656
+    //       tokenIdNo        : 105503768390099242107939260718822850437652720914443779545258912597313439118475
+
+    bytes32 public conditionId = 0x9e316d3bf403517b2d164f0b55ed21c5c767b6a4e83f650f6c4a2cc6c22c65ed;
+    uint256 public tokenIdYes = 109446563909122268726163789479242001029893107976120913855023459460148077033656;
+    uint256 public tokenIdNo = 105503768390099242107939260718822850437652720914443779545258912597313439118475;
 
     // Keys
     uint256 public deployerKey;
@@ -42,8 +45,6 @@ contract DeployAll is BaseScript {
         // 2. deploy Mock USDC Token of decimal 6
         // deployMockUSDC();
 
-
-
         // 2. deploy CTF Token
         // deployCTFToken();
 
@@ -54,7 +55,6 @@ contract DeployAll is BaseScript {
         // addOperator();
 
         // 5. prepare condition
-        // 0x71a8791245813fd994ba56a3b29f6d144c336fc6ca7ceeb1ce9f0c655a2a8ee1
         // prepareCondition();
 
         // 6.getYesAndNoOutcomeToken
@@ -63,15 +63,13 @@ contract DeployAll is BaseScript {
         // 7.register token
         // resgisterToken();
 
-        // 8. mint token to maker and taker 
-        mintToken();
+        // 8. mint token to maker and taker
+        // mintToken();
 
         // 9. token functions
-        // tokenfunctions();
-        
+        tokenfunctions();
     }
 
-  
     function deployUSDCToken() public {
         MockERC20 usdc = new MockERC20();
         console2.log("deployed usdc token ");
@@ -98,7 +96,8 @@ contract DeployAll is BaseScript {
     }
 
     function prepareCondition() public {
-        bytes32 questionId = keccak256(abi.encodePacked("Will ETH reach $10k in 2026?", uint256(block.chainid)));
+        bytes32 questionId =
+            keccak256(abi.encodePacked("Will ETH break $3,000 before March 31?", uint256(block.chainid)));
         ConditionalTokens(ctf).prepareCondition(deployer, questionId, 2);
         conditionId = ConditionalTokens(ctf).getConditionId(deployer, questionId, 2);
         console2.log("[5] Condition ID     :", vm.toString(conditionId));
@@ -126,15 +125,13 @@ contract DeployAll is BaseScript {
         // MockERC20(collateral).mint(maker, FUND_AMOUNT);
         // MockERC20(collateral).mint(taker, FUND_AMOUNT);
 
-        MockUSDC(obt_mock_usdc).mint(deployer, 1000e6);
+        MockUSDC(obt_mock_usdc).mint(taker, 1000e6);
         console2.log("[8] Minted", FUND_AMOUNT / 1e6, "mUSDC to maker & taker");
     }
 
-
-    function tokenfunctions() public{
+    function tokenfunctions() public {
         // 1. maker split token
         // splitPos();
-
 
         // 2. taker aprove exchange
         takerApproveExchange();
@@ -148,7 +145,7 @@ contract DeployAll is BaseScript {
         // ConditionalTokens(ctf).splitPosition(IERC20(collateral), bytes32(0), conditionId, partition, SPLIT_AMOUNT);
 
         // Approve exchange to move maker's outcome tokens
-        ConditionalTokens(ctf).setApprovalForAll(exchange, true);   
+        ConditionalTokens(ctf).setApprovalForAll(exchange, true);
         console2.log("[9] Maker split USDC -> YES/NO and approved exchange");
     }
 
@@ -156,7 +153,4 @@ contract DeployAll is BaseScript {
         IERC20(collateral).approve(exchange, FUND_AMOUNT);
         console2.log("[10] Taker approved exchange for USDC");
     }
-
-
-
 }

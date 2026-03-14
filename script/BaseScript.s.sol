@@ -17,14 +17,13 @@ contract BaseScript is Script {
         vm.createSelectFork("https://base-sepolia-rpc.publicnode.com");
         // vm.createSelectFork("https://mainnet.base.org");
 
-
         // uint256 deployerPrivateKey = vm.envUint("PRI_KEY");
         // vm.startBroadcast(deployerPrivateKey);
 
-        // uint256 makerPrivateKey = vm.envUint("MAKER_KEY");
-        // vm.startBroadcast(makerPrivateKey);
+        uint256 makerPrivateKey = vm.envUint("MAKER_KEY");
+        vm.startBroadcast(makerPrivateKey);
 
-        uint256 takerPrivateKey = vm.envUint("TAKER_KEY");
-        vm.startBroadcast(takerPrivateKey);
+        // uint256 takerPrivateKey = vm.envUint("TAKER_KEY");
+        // vm.startBroadcast(takerPrivateKey);
     }
 }
