@@ -9,74 +9,70 @@ import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {Order, Side, SignatureType, ORDER_TYPEHASH} from "src/exchange/libraries/OrderStructs.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-/**
- * @title MatchOnce — Base Sepolia Hackathon Demo
- * @notice Sends ONE `matchOrders` transaction to CTFExchange on Base Sepolia.
- *         Auto-refills maker/taker balances via MockUSDC mint() when running low.
- *         Called in a loop by demo_loop.sh to simulate continuous matching.
- *
- * Prerequisites (run 00_DeployAll.s.sol first, then set .env):
- *   CTF_EXCHANGE, COLLATERAL, TOKEN_ID_YES, CONDITION_ID
- *   PRI_KEY (operator/deployer)
- *   MAKER_PRIVATE_KEY, TAKER_PRIVATE_KEY
- *
- * Single manual run:
- *   forge script script/base/01_MatchOnce.s.sol:MatchOnce \
- *     --rpc-url $BASE_SEPOLIA_RPC \
- *     --broadcast \
- *     --private-key $PRI_KEY \
- *     -vv
- *
- * Loop (see demo_loop.sh):
- *   bash script/base/demo_loop.sh
- */
+import {BaseScript} from "../BaseScript.s.sol";
+
 contract MatchOnce is Script {
-    // ── Exchange params (read from env) ──────────────────────
-    address public exchange;
-    uint256 public tokenIdYes;
-
-    // ── Accounts ─────────────────────────────────────────────
-    uint256 public deployerKey;
-    uint256 public makerKey;
-    uint256 public takerKey;
-    address public maker;
-    address public taker;
-
-    // ── Order size (realistic small fills for demo) ──────────
-    /// Sell 100 YES tokens at 0.60 USDC each
     uint256 constant FILL_TOKENS = 100 * 1e6; // 100 tokens (1e6 precision)
     uint256 constant FILL_USDC = 60 * 1e6; //  60 USDC  (6 decimals)
 
-    /// Refill threshold / amount — restock when balance drops below FILL_* * 10
     uint256 constant REFILL_AMOUNT = 10_000 * 1e6;
 
-    // ── Nonce counter (incremented each run via env) ─────────
-    uint256 public runCounter;
+    address public exchange = 0xA518f5394f4bc8b3DC7478FAF7614ADbCa96B27f;
+    address public ctf = 0xa69b5Ce1e56256cCF85d1910906Fe27Db6722e9f;
+    address public collateral = 0x348475f4B999069169AC6C5835f290caf0d2267b;
+    bytes32 public conditionId = 0x9e316d3bf403517b2d164f0b55ed21c5c767b6a4e83f650f6c4a2cc6c22c65ed;
+    uint256 public tokenIdYes = 109446563909122268726163789479242001029893107976120913855023459460148077033656;
+    uint256 public tokenIdNo = 105503768390099242107939260718822850437652720914443779545258912597313439118475;
+
+    uint256 public deployerKey = vm.envUint("PRI_KEY");
+    uint256 public makerKey = vm.envUint("MAKER_KEY");
+    uint256 public takerKey = vm.envUint("TAKER_KEY");
+    address public deployer = 0x8E8d5f70025068940FBc3E9945932EA02fAC7aC5;
+    address public maker = 0xB077778149f450C44b15F879f15Bf2E21121A8C7;
+    address public taker = 0xDFF68F93792dDD4b539cC7179Dd04E648AB7660e;
+
+    function setUp() public {
+        vm.createSelectFork("https://base-sepolia-rpc.publicnode.com");
+    }
+
+    CTFExchange exchangeContract = CTFExchange(exchange);
 
     function run() external {
-        // ── Read environment ──────────────────────────────────
-        exchange = vm.envAddress("CTF_EXCHANGE");
-        tokenIdYes = vm.envUint("TOKEN_ID_YES");
-        deployerKey = vm.envUint("PRI_KEY");
-        makerKey = vm.envOr("MAKER_PRIVATE_KEY", deployerKey);
-        takerKey = vm.envOr("TAKER_PRIVATE_KEY", deployerKey);
-        maker = vm.addr(makerKey);
-        taker = vm.addr(takerKey);
-        runCounter = vm.envOr("RUN_COUNTER", uint256(0));
+        // 1. get condition infos
+        // getConditionInfos();
 
-        // ── Resolve collateral / CTF from exchange ────────────
-        CTFExchange exchangeContract = CTFExchange(exchange);
+        // 2.get nonce
+        // getMakerAndTakerNonce();
+
+        // 3. ensure key
+        // _ensureTakerReady(collateral, exchange, takerKey, taker);
+        // _ensureMakerReady(collateral, ctf, exchange, conditionId, makerKey, maker, tokenIdYes);
+
+        // 4. build matchOrders
+        buildMatchOrders();
+    }
+
+    function getConditionInfos() public view {
         address collateral = exchangeContract.getCollateral();
-        address ctf = exchangeContract.getCtf();
-        bytes32 conditionId = vm.envBytes32("CONDITION_ID");
+        console2.log("collateral", collateral);
 
-        // ── Read on-chain nonces ──────────────────────────────
+        address ctf = exchangeContract.getCtf();
+        console2.log("ctf", ctf);
+    }
+
+    function getMakerAndTakerNonce() public {
+        uint256 makerNonce = exchangeContract.nonces(maker);
+        console2.log("makerNonce", makerNonce);
+        uint256 takerNonce = exchangeContract.nonces(taker);
+        console2.log("takerNonce", takerNonce);
+    }
+
+    uint256 public runCounter = 0;
+
+    function buildMatchOrders() public {
+        runCounter++;
         uint256 makerNonce = exchangeContract.nonces(maker);
         uint256 takerNonce = exchangeContract.nonces(taker);
-
-        // ── Pre-flight checks + auto-refill ──────────────────
-        _ensureTakerReady(collateral, exchange, takerKey, taker);
-        _ensureMakerReady(collateral, ctf, exchange, conditionId, makerKey, maker, tokenIdYes);
 
         console2.log("\n[MatchOnce] Block #", block.number, " | Run #", runCounter);
         console2.log("  Exchange  :", exchange);
@@ -140,14 +136,6 @@ contract MatchOnce is Script {
         console2.log("  >> matchOrders() SUCCESS");
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  Auto-refill helpers
-    // ─────────────────────────────────────────────────────────
-
-    /**
-     * @dev Ensures taker has enough USDC and has approved the exchange.
-     *      Calls MockUSDC.mint() if balance is insufficient (testnet only).
-     */
     function _ensureTakerReady(address collateral, address exch, uint256 takerPk, address takerAddr) internal {
         uint256 bal = IERC20(collateral).balanceOf(takerAddr);
         uint256 allw = IERC20(collateral).allowance(takerAddr, exch);
@@ -168,10 +156,6 @@ contract MatchOnce is Script {
         }
     }
 
-    /**
-     * @dev Ensures maker has enough YES tokens and CTF approval.
-     *      Mints MockUSDC and splits into YES/NO if YES balance is insufficient.
-     */
     function _ensureMakerReady(
         address collateral,
         address ctf,
@@ -210,8 +194,6 @@ contract MatchOnce is Script {
             vm.stopBroadcast();
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────
 
     function _sign(uint256 privateKey, bytes32 finalHash) internal pure returns (bytes memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, finalHash);
