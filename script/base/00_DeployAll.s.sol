@@ -64,10 +64,10 @@ contract DeployAll is BaseScript {
         // resgisterToken();
 
         // 8. mint token to maker and taker
-        // mintToken();
+        mintToken();
 
         // 9. token functions
-        tokenfunctions();
+        // tokenfunctions();
     }
 
     function deployUSDCToken() public {
@@ -125,7 +125,8 @@ contract DeployAll is BaseScript {
         // MockERC20(collateral).mint(maker, FUND_AMOUNT);
         // MockERC20(collateral).mint(taker, FUND_AMOUNT);
 
-        MockUSDC(obt_mock_usdc).mint(taker, 1000e6);
+        address mm_bot = 0x7E40b4A86e23666BB9C87F3d0EaBCFd7e012f037;
+        MockUSDC(obt_mock_usdc).mint(mm_bot, 1000000e6);
         console2.log("[8] Minted", FUND_AMOUNT / 1e6, "mUSDC to maker & taker");
     }
 
